@@ -1,0 +1,239 @@
+---
+title: 'Arquitectura'
+description: 'Estructura técnica del proyecto Convey Pro'
+---
+
+## Estructura del Proyecto
+
+```
+conveypro/
+├── config/                 # Configuración Django
+│   ├── settings/          # Settings por ambiente
+│   │   ├── base.py       # Configuración compartida
+│   │   ├── local.py      # Desarrollo
+│   │   ├── production.py # Producción
+│   │   └── test.py       # Testing
+│   ├── urls.py            # URLs principales
+│   ├── celery_app.py      # Configuración Celery
+│   ├── routing.py         # WebSocket routing
+│   └── api_router.py      # DRF router
+├── convey/                 # Apps principales
+│   ├── users/             # Usuarios y Agentes
+│   ├── conversations/     # Chat y Flujos
+│   ├── messaging/         # Campañas y Templates
+│   ├── utils/             # Utilidades compartidas
+│   └── templates/         # Templates HTML
+├── infra/                  # Kubernetes manifests
+├── compose/                # Docker configs
+├── requirements/           # Dependencias Python
+└── local.yml              # Docker compose dev
+```
+
+## Diagrama de Arquitectura
+
+```mermaid
+graph TB
+    subgraph "Cliente"
+        A[Browser]
+        B[WebSocket]
+    end
+
+    subgraph "Load Balancer"
+        C[Traefik / CloudFlare]
+    end
+
+    subgraph "Application Layer"
+        D[Django / Gunicorn]
+        E[Daphne / Channels]
+    end
+
+    subgraph "Background Workers"
+        F[Celery Worker]
+        G[Celery Worker OpenAI]
+        H[Celery Beat]
+    end
+
+    subgraph "Data Layer"
+        I[(PostgreSQL)]
+        J[(Redis)]
+    end
+
+    subgraph "External Services"
+        K[WhatsApp Cloud API]
+        L[OpenAI API]
+        M[AWS S3]
+    end
+
+    A --> C
+    B --> C
+    C --> D
+    C --> E
+    D --> I
+    D --> J
+    E --> J
+    F --> I
+    F --> J
+    F --> K
+    G --> L
+    H --> F
+    D --> M
+```
+
+## Apps de Django
+
+<CardGroup cols={3}>
+  <Card title="users" icon="users">
+    **Modelos:** User, Agent
+
+    Autenticación, perfiles de agentes, asignación de líneas
+  </Card>
+  <Card title="conversations" icon="comments">
+    **Modelos:** Contact, Conversation, Message, Flow, FlowStep...
+
+    Chat en tiempo real, flujos automatizados, webhooks
+  </Card>
+  <Card title="messaging" icon="paper-plane">
+    **Modelos:** MessageTemplate, OutboundCampaign, QueuedMessage...
+
+    Campañas masivas, templates HSM, cola de mensajes
+  </Card>
+</CardGroup>
+
+## Flujo de Datos
+
+### Mensaje Entrante (WhatsApp → Sistema)
+
+```mermaid
+sequenceDiagram
+    participant WA as WhatsApp
+    participant WH as Webhook
+    participant DB as PostgreSQL
+    participant WS as WebSocket
+    participant FE as Flow Engine
+
+    WA->>WH: POST /api/webhook
+    WH->>DB: Crear Message
+    WH->>WS: Broadcast a agentes
+    WH->>FE: Trigger flows
+    FE->>DB: Ejecutar pasos
+    FE->>WA: Responder si aplica
+```
+
+### Mensaje Saliente (Sistema → WhatsApp)
+
+```mermaid
+sequenceDiagram
+    participant AG as Agente
+    participant DJ as Django
+    participant CL as Celery
+    participant WA as WhatsApp API
+    participant WH as Webhook
+
+    AG->>DJ: Enviar mensaje
+    DJ->>CL: Queue task
+    CL->>WA: POST /messages
+    WA-->>CL: 200 OK + wam_id
+    CL->>DJ: Actualizar Message
+    WA->>WH: Status: delivered
+    WH->>DJ: Actualizar status
+```
+
+## Stack Tecnológico
+
+| Capa | Tecnología | Propósito |
+|------|------------|-----------|
+| **Web Framework** | Django 5.1 | Aplicación principal |
+| **API** | Django REST Framework | Endpoints REST |
+| **Real-time** | Django Channels | WebSocket |
+| **Task Queue** | Celery 5.5 | Background jobs |
+| **Scheduler** | Celery Beat | Tareas periódicas |
+| **Database** | PostgreSQL 15 | Persistencia |
+| **Cache/Broker** | Redis 6 | Cache, sessions, queue |
+| **Web Server** | Gunicorn + Uvicorn | WSGI/ASGI |
+| **Reverse Proxy** | Traefik | Load balancing, SSL |
+| **Container** | Docker | Containerización |
+| **Orchestration** | Kubernetes | Deploy producción |
+
+## Patrones de Diseño
+
+### 1. Service Layer
+
+Lógica de negocio encapsulada en servicios:
+
+```python
+# convey/conversations/services/flow_engine.py
+class FlowEngine:
+    def execute_step(self, execution, step):
+        # Lógica de ejecución de pasos
+        pass
+
+    def evaluate_transitions(self, step, context):
+        # Evaluar condiciones de transición
+        pass
+```
+
+### 2. Task Queue Pattern
+
+Operaciones largas en background:
+
+```python
+# convey/messaging/tasks.py
+@shared_task
+def send_campaign_message(queued_message_id: int):
+    # Enviar mensaje individual
+    pass
+```
+
+### 3. Event-Driven
+
+Webhooks disparan acciones:
+
+```python
+# Webhook recibido → Celery task → Actualizar DB → Broadcast WebSocket
+```
+
+### 4. State Machine
+
+Estados definidos para entidades:
+
+```python
+class Conversation:
+    class Status(TextChoices):
+        UNASSIGNED = "UNASSIGNED"
+        IN_FLOW = "IN_FLOW"
+        WAITING_FOR_AGENT = "WAITING_FOR_AGENT"
+        WITH_AGENT = "WITH_AGENT"
+        RESOLVED = "RESOLVED"
+```
+
+## Configuración por Ambiente
+
+<Tabs>
+  <Tab title="Local">
+    ```python
+    # config/settings/local.py
+    DEBUG = True
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "HOST": "postgres",
+            "PORT": 5432,
+        }
+    }
+    ```
+  </Tab>
+  <Tab title="Production">
+    ```python
+    # config/settings/production.py
+    DEBUG = False
+    SECURE_SSL_REDIRECT = True
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "HOST": env("DATABASE_HOST"),
+            "OPTIONS": {"sslmode": "require"},
+        }
+    }
+    ```
+  </Tab>
+</Tabs>

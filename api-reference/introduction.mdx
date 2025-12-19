@@ -1,33 +1,222 @@
 ---
-title: 'Introduction'
-description: 'Example section for showcasing API endpoints'
+title: 'Introducción a la API'
+description: 'API REST de Convey Pro para integración programática'
 ---
 
-<Note>
-  If you're not looking to build API reference documentation, you can delete
-  this section by removing the api-reference folder.
-</Note>
+## Overview
 
-## Welcome
+La API de Convey Pro permite integrar las funcionalidades de la plataforma en tus aplicaciones. Con ella puedes:
 
-There are two ways to build API documentation: [OpenAPI](https://mintlify.com/docs/api-playground/openapi/setup) and [MDX components](https://mintlify.com/docs/api-playground/mdx/configuration). For the starter kit, we are using the following OpenAPI specification.
+- Gestionar conversaciones y mensajes
+- Administrar contactos
+- Crear y monitorear campañas
+- Recibir webhooks de WhatsApp
 
-<Card
-  title="Plant Store Endpoints"
-  icon="leaf"
-  href="https://github.com/mintlify/starter/blob/main/api-reference/openapi.json"
->
-  View the OpenAPI specification file
+## Base URL
+
+```
+https://app.convey.pro/api/
+```
+
+Para desarrollo local:
+
+```
+http://localhost:8000/api/
+```
+
+---
+
+## Autenticación
+
+Todas las peticiones requieren autenticación via Token:
+
+```bash
+curl https://app.convey.pro/api/conversations/ \
+  -H "Authorization: Token your-token-here"
+```
+
+<Card title="Ver Autenticación" icon="key" href="/api-reference/authentication">
+  Aprende cómo obtener y usar tokens de autenticación
 </Card>
 
-## Authentication
+---
 
-All API endpoints are authenticated using Bearer tokens and picked up from the specification file.
+## Formato de Respuestas
+
+Todas las respuestas están en formato JSON.
+
+### Respuesta Exitosa
 
 ```json
-"security": [
-  {
-    "bearerAuth": []
-  }
-]
+{
+  "id": 1,
+  "name": "Mi Campaña",
+  "status": "ACTIVE",
+  "created_at": "2024-01-15T10:30:00Z"
+}
 ```
+
+### Respuesta con Paginación
+
+```json
+{
+  "count": 150,
+  "next": "https://app.convey.pro/api/conversations/?page=2",
+  "previous": null,
+  "results": [...]
+}
+```
+
+### Respuesta de Error
+
+```json
+{
+  "detail": "Authentication credentials were not provided."
+}
+```
+
+O con múltiples errores de validación:
+
+```json
+{
+  "phone_number": ["Este campo es requerido."],
+  "email": ["Ingrese una dirección de email válida."]
+}
+```
+
+---
+
+## Códigos de Estado HTTP
+
+| Código | Descripción |
+|--------|-------------|
+| 200 | OK - Petición exitosa |
+| 201 | Created - Recurso creado |
+| 204 | No Content - Eliminación exitosa |
+| 400 | Bad Request - Datos inválidos |
+| 401 | Unauthorized - Token inválido o no proporcionado |
+| 403 | Forbidden - Sin permisos |
+| 404 | Not Found - Recurso no encontrado |
+| 429 | Too Many Requests - Rate limit excedido |
+| 500 | Internal Server Error - Error del servidor |
+
+---
+
+## Rate Limiting
+
+La API tiene límites de peticiones por minuto:
+
+| Endpoint | Límite |
+|----------|--------|
+| General | 100 req/min |
+| Webhook | 1000 req/min |
+| Envío de mensajes | 60 req/min |
+
+Cuando excedes el límite:
+
+```
+HTTP 429 Too Many Requests
+Retry-After: 30
+```
+
+---
+
+## Endpoints Disponibles
+
+<CardGroup cols={2}>
+  <Card title="Conversations" icon="comments" href="/api-reference/conversations/list">
+    Listar, ver y gestionar conversaciones
+  </Card>
+  <Card title="Contacts" icon="address-book" href="/api-reference/contacts/list">
+    Crear, actualizar y buscar contactos
+  </Card>
+  <Card title="Campaigns" icon="bullhorn" href="/api-reference/campaigns/list">
+    Crear y monitorear campañas de mensajería
+  </Card>
+  <Card title="Webhooks" icon="webhook" href="/api-reference/webhooks/whatsapp">
+    Recibir eventos de WhatsApp en tiempo real
+  </Card>
+</CardGroup>
+
+---
+
+## SDKs y Ejemplos
+
+### Python
+
+```python
+import requests
+
+class ConveyClient:
+    def __init__(self, token: str, base_url: str = "https://app.convey.pro/api"):
+        self.base_url = base_url
+        self.headers = {"Authorization": f"Token {token}"}
+
+    def get_conversations(self, **params):
+        response = requests.get(
+            f"{self.base_url}/conversations/",
+            headers=self.headers,
+            params=params
+        )
+        return response.json()
+
+    def send_message(self, conversation_id: int, content: str):
+        response = requests.post(
+            f"{self.base_url}/conversations/{conversation_id}/messages/",
+            headers=self.headers,
+            json={"content_type": "TEXT", "content": content}
+        )
+        return response.json()
+
+# Uso
+client = ConveyClient("your-token-here")
+conversations = client.get_conversations(status="ACTIVE")
+```
+
+### JavaScript
+
+```javascript
+class ConveyClient {
+  constructor(token, baseUrl = "https://app.convey.pro/api") {
+    this.baseUrl = baseUrl;
+    this.headers = {
+      "Authorization": `Token ${token}`,
+      "Content-Type": "application/json"
+    };
+  }
+
+  async getConversations(params = {}) {
+    const query = new URLSearchParams(params).toString();
+    const response = await fetch(
+      `${this.baseUrl}/conversations/?${query}`,
+      { headers: this.headers }
+    );
+    return response.json();
+  }
+
+  async sendMessage(conversationId, content) {
+    const response = await fetch(
+      `${this.baseUrl}/conversations/${conversationId}/messages/`,
+      {
+        method: "POST",
+        headers: this.headers,
+        body: JSON.stringify({ content_type: "TEXT", content })
+      }
+    );
+    return response.json();
+  }
+}
+
+// Uso
+const client = new ConveyClient("your-token-here");
+const conversations = await client.getConversations({ status: "ACTIVE" });
+```
+
+---
+
+## Soporte
+
+Si tienes preguntas sobre la API:
+
+- Email: [soporte@convey.pro](mailto:soporte@convey.pro)
+- GitHub: [Issues](https://github.com/aleducode/conveypro/issues)

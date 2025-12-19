@@ -1,97 +1,133 @@
 ---
-title: "Introduction"
-description: "Welcome to the new home for your documentation"
+title: 'Convey Pro'
+description: 'Plataforma de comunicación empresarial para WhatsApp'
 ---
 
-## Setting up
+## Bienvenido a Convey Pro
 
-Get your documentation site up and running in minutes.
+Convey Pro es una plataforma completa de comunicación empresarial para WhatsApp que incluye:
 
-<Card
-  title="Start here"
-  icon="rocket"
-  href="/quickstart"
-  horizontal
->
-  Follow our three step quickstart guide.
-</Card>
-
-## Make it yours
-
-Design a docs site that looks great and empowers your users.
-
-<Columns cols={2}>
+<CardGroup cols={2}>
   <Card
-    title="Edit locally"
-    icon="pen-to-square"
-    href="/development"
+    title="Chat en Tiempo Real"
+    icon="comments"
+    href="/quickstart"
   >
-    Edit your docs locally and preview them in real time.
+    Conversaciones con clientes asignadas a agentes humanos con WebSocket en tiempo real
   </Card>
   <Card
-    title="Customize your site"
-    icon="palette"
-    href="/essentials/settings"
+    title="Flujos Automatizados"
+    icon="diagram-project"
+    href="/flows/overview"
   >
-    Customize the design and colors of your site to match your brand.
-  </Card>
-    <Card
-    title="Set up navigation"
-    icon="map"
-    href="/essentials/navigation"
-  >
-    Organize your docs to help users find what they need and succeed with your product.
+    24 tipos de pasos incluyendo IA, APIs, condicionales y transferencias
   </Card>
   <Card
-    title="API documentation"
-    icon="terminal"
+    title="Campañas Masivas"
+    icon="bullhorn"
+    href="/campaigns/overview"
+  >
+    Envío masivo con templates HSM, carga de Excel y tracking en tiempo real
+  </Card>
+  <Card
+    title="API REST"
+    icon="code"
     href="/api-reference/introduction"
   >
-    Auto-generate API documentation from OpenAPI specifications.
+    API completa para integración con sistemas externos
   </Card>
-</Columns>
+</CardGroup>
 
-## Create beautiful pages
+## Stack Tecnológico
 
-Everything you need to create world-class documentation.
+| Componente | Tecnología |
+|------------|------------|
+| **Backend** | Django 5.1 + Django REST Framework |
+| **Real-time** | Django Channels + Redis |
+| **Task Queue** | Celery 5.5 + Redis |
+| **Database** | PostgreSQL 15 |
+| **Cache** | Redis 6 |
+| **Deploy** | Docker + Kubernetes |
+| **CDN** | CloudFlare |
+| **External API** | WhatsApp Cloud API, OpenAI |
 
-<Columns cols={2}>
-  <Card
-    title="Write with MDX"
-    icon="pen-fancy"
-    href="/essentials/markdown"
-  >
-    Use MDX to style your docs pages.
+## Arquitectura General
+
+```mermaid
+graph TB
+    subgraph Frontend
+        A[Django Templates]
+        B[WebSocket Client]
+    end
+
+    subgraph Backend
+        C[Django Views]
+        D[REST API]
+        E[Channels Consumer]
+    end
+
+    subgraph Workers
+        F[Celery Workers]
+        G[Celery Beat]
+    end
+
+    subgraph External
+        H[WhatsApp Cloud API]
+        I[OpenAI API]
+    end
+
+    subgraph Data
+        J[(PostgreSQL)]
+        K[(Redis)]
+    end
+
+    A --> C
+    B --> E
+    C --> D
+    D --> J
+    E --> K
+    F --> H
+    F --> I
+    F --> J
+    G --> F
+    H --> D
+```
+
+## Apps del Proyecto
+
+<CardGroup cols={3}>
+  <Card title="Users" icon="users">
+    Usuarios y Agentes de atención
   </Card>
-  <Card
-    title="Code samples"
-    icon="code"
-    href="/essentials/code"
-  >
-    Add sample code to demonstrate how to use your product.
+  <Card title="Conversations" icon="message">
+    Chat, Contactos, Flujos, Mensajes
   </Card>
-  <Card
-    title="Images"
-    icon="image"
-    href="/essentials/images"
-  >
-    Display images and other media.
+  <Card title="Messaging" icon="paper-plane">
+    Campañas, Templates, Cola de mensajes
   </Card>
-  <Card
-    title="Reusable snippets"
-    icon="recycle"
-    href="/essentials/reusable-snippets"
-  >
-    Write once and reuse across your docs.
-  </Card>
-</Columns>
+</CardGroup>
 
-## Need inspiration?
+## Inicio Rápido
 
-<Card
-  title="See complete examples"
-  icon="stars"
-  href="https://mintlify.com/customers"
->
-  Browse our showcase of exceptional documentation sites.
-</Card>
+<Steps>
+  <Step title="Clonar el repositorio">
+    ```bash
+    git clone https://github.com/aleducode/conveypro.git
+    cd conveypro
+    ```
+  </Step>
+  <Step title="Configurar variables de entorno">
+    ```bash
+    cp .envs/.local/.django.example .envs/.local/.django
+    cp .envs/.local/.postgres.example .envs/.local/.postgres
+    ```
+  </Step>
+  <Step title="Levantar con Docker">
+    ```bash
+    docker-compose -f local.yml up -d
+    ```
+  </Step>
+  <Step title="Acceder a la aplicación">
+    Abrir http://localhost:8000 en el navegador
+  </Step>
+</Steps>

@@ -1,0 +1,183 @@
+---
+title: 'Autenticación'
+description: 'Métodos de autenticación para la API'
+---
+
+## Overview
+
+Convey Pro utiliza autenticación basada en sesiones de Django para las vistas web y tokens para la API.
+
+---
+
+## Autenticación Web (Sesiones)
+
+Las vistas web utilizan el sistema de autenticación estándar de Django con sesiones.
+
+### Login
+
+```python
+# URL: /accounts/login/
+# Template: users/login.html
+
+from django.contrib.auth import authenticate, login
+
+def login_view(request):
+    if request.method == "POST":
+        email = request.POST["email"]
+        password = request.POST["password"]
+        user = authenticate(request, email=email, password=password)
+        if user is not None:
+            login(request, user)
+            return redirect("dashboard")
+```
+
+### Logout
+
+```python
+# URL: /accounts/logout/
+
+from django.contrib.auth import logout
+
+def logout_view(request):
+    logout(request)
+    return redirect("login")
+```
+
+---
+
+## Autenticación API (Token)
+
+Para llamadas programáticas a la API, se utiliza Django REST Framework Token Authentication.
+
+### Obtener Token
+
+```bash
+curl -X POST https://app.convey.pro/api/auth/token/ \
+  -H "Content-Type: application/json" \
+  -d '{"email": "user@example.com", "password": "your-password"}'
+```
+
+**Respuesta:**
+
+```json
+{
+  "token": "9944b09199c62bcf9418ad846dd0e4bbdfc6ee4b",
+  "user": {
+    "id": 1,
+    "email": "user@example.com",
+    "name": "John Doe"
+  }
+}
+```
+
+### Usar Token
+
+Incluir el token en el header `Authorization`:
+
+```bash
+curl https://app.convey.pro/api/conversations/ \
+  -H "Authorization: Token 9944b09199c62bcf9418ad846dd0e4bbdfc6ee4b"
+```
+
+---
+
+## Permisos
+
+### Modelo de Permisos
+
+```python
+# convey/users/models.py
+
+class User(AbstractUser):
+    # Campos personalizados...
+    pass
+
+class Agent(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    is_active = models.BooleanField(default=True)
+    max_concurrent_conversations = models.IntegerField(default=5)
+```
+
+### Permisos por Vista
+
+| Endpoint | Permiso Requerido |
+|----------|-------------------|
+| `/api/conversations/` | `IsAuthenticated` |
+| `/api/campaigns/` | `IsAuthenticated` |
+| `/api/webhook/` | Sin autenticación (validación por firma) |
+| `/admin/` | `is_staff` |
+
+---
+
+## Webhook Authentication
+
+Los webhooks de WhatsApp no usan tokens, sino validación por firma:
+
+```python
+def validate_webhook_signature(request) -> bool:
+    signature = request.headers.get("X-Hub-Signature-256")
+    if not signature:
+        return False
+
+    expected = hmac.new(
+        settings.WHATSAPP_APP_SECRET.encode(),
+        request.body,
+        hashlib.sha256,
+    ).hexdigest()
+
+    return hmac.compare_digest(f"sha256={expected}", signature)
+```
+
+---
+
+## Headers Comunes
+
+| Header | Valor | Descripción |
+|--------|-------|-------------|
+| `Authorization` | `Token <token>` | Token de autenticación |
+| `Content-Type` | `application/json` | Tipo de contenido |
+| `Accept` | `application/json` | Formato de respuesta |
+
+---
+
+## Errores de Autenticación
+
+### 401 Unauthorized
+
+```json
+{
+  "detail": "Authentication credentials were not provided."
+}
+```
+
+### 403 Forbidden
+
+```json
+{
+  "detail": "You do not have permission to perform this action."
+}
+```
+
+---
+
+## Ejemplo Completo
+
+```python
+import requests
+
+# 1. Obtener token
+response = requests.post(
+    "https://app.convey.pro/api/auth/token/",
+    json={"email": "user@example.com", "password": "password123"}
+)
+token = response.json()["token"]
+
+# 2. Hacer llamada autenticada
+headers = {"Authorization": f"Token {token}"}
+conversations = requests.get(
+    "https://app.convey.pro/api/conversations/",
+    headers=headers
+)
+
+print(conversations.json())
+```

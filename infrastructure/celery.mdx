@@ -1,0 +1,250 @@
+---
+title: 'Celery'
+description: 'Task queue para procesamiento en background'
+---
+
+## Configuración
+
+### `config/celery_app.py`
+
+```python
+import os
+from celery import Celery
+
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.local")
+
+app = Celery("convey")
+app.config_from_object("django.conf:settings", namespace="CELERY")
+app.autodiscover_tasks()
+
+# Task routes
+app.conf.task_routes = {
+    "execute_openai_assistant_step": {"queue": "openai"},
+    "process_with_openai_assistant": {"queue": "openai"},
+}
+```
+
+### Settings
+
+```python
+# config/settings/base.py
+CELERY_BROKER_URL = env("REDIS_URL")
+CELERY_RESULT_BACKEND = env("REDIS_URL")
+CELERY_TIMEZONE = "America/Bogota"
+CELERY_TASK_SERIALIZER = "json"
+CELERY_RESULT_SERIALIZER = "json"
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
+```
+
+---
+
+## Colas
+
+| Cola | Propósito | Workers |
+|------|-----------|---------|
+| `default` | Tasks generales | 2-4 |
+| `openai` | OpenAI API calls | 1-2 |
+
+### Configuración de Workers
+
+```yaml
+# local.yml
+celeryworker:
+  command: celery -A config.celery_app worker -Q default -c 2 -l INFO
+
+celeryworker-openai:
+  command: celery -A config.celery_app worker -Q openai -c 2 -l INFO
+```
+
+---
+
+## Tasks Principales
+
+### Conversations
+
+| Task | Descripción |
+|------|-------------|
+| `process_incoming_message` | Procesar mensaje entrante |
+| `download_whatsapp_media` | Descargar media |
+| `execute_flow` | Iniciar flujo |
+| `execute_flow_step` | Ejecutar paso |
+| `continue_flow` | Continuar flujo pausado |
+
+### Messaging
+
+| Task | Descripción |
+|------|-------------|
+| `process_campaign` | Procesar campaña |
+| `send_campaign_message` | Enviar mensaje |
+| `update_campaign_stats` | Actualizar stats |
+| `pause_campaign` | Pausar campaña |
+| `resume_campaign` | Reanudar campaña |
+
+---
+
+## Decoradores
+
+### Task básico
+
+```python
+from celery import shared_task
+
+@shared_task
+def my_task(arg1, arg2):
+    return arg1 + arg2
+```
+
+### Con retry automático
+
+```python
+@shared_task(
+    bind=True,
+    max_retries=3,
+    default_retry_delay=60,
+    autoretry_for=(Exception,),
+)
+def my_task(self, arg):
+    try:
+        # ...
+    except SomeError as e:
+        raise self.retry(exc=e, countdown=60)
+```
+
+### Con timeout
+
+```python
+@shared_task(
+    time_limit=300,      # Hard limit: 5 min
+    soft_time_limit=240, # Soft limit: 4 min
+)
+def long_running_task():
+    try:
+        # ...
+    except SoftTimeLimitExceeded:
+        # Cleanup before hard kill
+        pass
+```
+
+---
+
+## Celery Beat
+
+### Tasks Periódicas
+
+```python
+# config/celery_app.py
+from celery.schedules import crontab
+
+app.conf.beat_schedule = {
+    "check-flow-timeouts": {
+        "task": "check_flow_timeouts",
+        "schedule": crontab(minute="*/5"),  # Cada 5 min
+    },
+    "assign-waiting-conversations": {
+        "task": "assign_waiting_conversations",
+        "schedule": 30.0,  # Cada 30 seg
+    },
+    "cleanup-old-executions": {
+        "task": "cleanup_old_executions",
+        "schedule": crontab(hour=3, minute=0),  # 3 AM
+    },
+}
+```
+
+### Admin de Beat
+
+También se pueden configurar desde Django Admin:
+
+1. Ir a `/admin/django_celery_beat/`
+2. Crear Periodic Task
+3. Configurar schedule (crontab o interval)
+
+---
+
+## Monitoring con Flower
+
+### Acceso
+
+http://localhost:5555
+
+### Métricas
+
+- Workers activos
+- Tasks por estado
+- Tiempo de ejecución
+- Colas y mensajes
+
+### Comandos
+
+```bash
+# Inspeccionar workers
+docker-compose -f local.yml exec celeryworker celery -A config.celery_app inspect active
+
+# Ver tasks registradas
+docker-compose -f local.yml exec celeryworker celery -A config.celery_app inspect registered
+
+# Purgar cola
+docker-compose -f local.yml exec celeryworker celery -A config.celery_app purge
+```
+
+---
+
+## Debugging
+
+### Ver logs
+
+```bash
+docker-compose -f local.yml logs -f celeryworker
+```
+
+### Task síncrona (testing)
+
+```python
+# settings/test.py
+CELERY_TASK_ALWAYS_EAGER = True
+CELERY_TASK_EAGER_PROPAGATES = True
+```
+
+### Ejecutar task manualmente
+
+```python
+# Django shell
+from convey.messaging.tasks import process_campaign
+
+# Sincrónico
+process_campaign(campaign_id=1)
+
+# Asincrónico
+process_campaign.delay(campaign_id=1)
+
+# Con countdown
+process_campaign.apply_async(args=[1], countdown=60)
+```
+
+---
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Tasks no se ejecutan">
+    1. Verificar que el worker esté corriendo
+    2. Verificar conexión a Redis
+    3. Verificar que la task esté registrada
+    ```bash
+    celery -A config.celery_app inspect registered
+    ```
+  </Accordion>
+
+  <Accordion title="Worker se reinicia constantemente">
+    - Verificar logs por errores
+    - Verificar límites de memoria
+    - Verificar conexión a DB
+  </Accordion>
+
+  <Accordion title="Tasks duplicadas">
+    - Verificar idempotencia de tasks
+    - Usar `task_id` único
+    - Implementar locks con Redis
+  </Accordion>
+</AccordionGroup>

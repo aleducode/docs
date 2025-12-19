@@ -1,0 +1,101 @@
+---
+title: 'Modelos de Datos'
+description: 'Visión general de los modelos de la base de datos'
+---
+
+## Diagrama de Relaciones
+
+```mermaid
+erDiagram
+    User ||--o| Agent : has
+    Agent }o--o{ WhatsAppLine : allowed_lines
+
+    WhatsAppLine ||--o{ Conversation : has
+    WhatsAppLine ||--o{ MessageTemplate : has
+    WhatsAppLine ||--o{ Flow : has
+
+    Contact ||--o{ Conversation : has
+    Contact ||--o{ ContactExtraField : has
+    Contact }o--o{ ContactGroup : belongs_to
+
+    Conversation ||--o{ Message : contains
+    Conversation ||--o{ ConversationAgent : assignments
+    Conversation ||--o{ FlowExecution : executions
+
+    Message ||--o| Media : attachment
+    Message ||--o{ MessageStatusHistory : history
+    Message ||--o{ MessageReaction : reactions
+
+    Flow ||--o{ FlowStep : steps
+    Flow ||--o{ FlowExecution : executions
+    FlowStep ||--o{ FlowTransition : from
+    FlowStep ||--o{ FlowTransition : to
+
+    OutboundCampaign ||--o{ CampaignRecipient : recipients
+    OutboundCampaign ||--o{ QueuedMessage : messages
+    QueuedMessage ||--o| Message : creates
+```
+
+## Resumen de Modelos por App
+
+<Tabs>
+  <Tab title="Users">
+    | Modelo | Descripción |
+    |--------|-------------|
+    | `User` | Usuario del sistema (email-based) |
+    | `Agent` | Perfil de agente de atención |
+  </Tab>
+  <Tab title="Conversations">
+    | Modelo | Descripción |
+    |--------|-------------|
+    | `WhatsAppLine` | Línea de WhatsApp Business |
+    | `Contact` | Contacto/cliente |
+    | `ContactGroup` | Grupo de contactos |
+    | `Conversation` | Hilo de conversación |
+    | `Message` | Mensaje individual |
+    | `Media` | Archivo adjunto |
+    | `Flow` | Flujo automatizado |
+    | `FlowStep` | Paso del flujo |
+    | `FlowTransition` | Transición entre pasos |
+    | `FlowExecution` | Ejecución de flujo |
+    | `MessageStatusHistory` | Historial de webhooks |
+  </Tab>
+  <Tab title="Messaging">
+    | Modelo | Descripción |
+    |--------|-------------|
+    | `MessageTemplate` | Template HSM de Meta |
+    | `OutboundCampaign` | Campaña masiva |
+    | `CampaignRecipient` | Destinatario de campaña |
+    | `QueuedMessage` | Mensaje en cola |
+    | `WhatsAppPricing` | Precios por país |
+  </Tab>
+</Tabs>
+
+## Modelo Base
+
+Todos los modelos heredan de `ConveyModel`:
+
+```python
+class ConveyModel(models.Model):
+    """Base model with automatic timestamps."""
+
+    created = models.DateTimeField(auto_now_add=True)
+    modified = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        abstract = True
+```
+
+## Próximos Pasos
+
+<CardGroup cols={3}>
+  <Card title="Users" icon="users" href="/models/users">
+    Modelos de usuarios y agentes
+  </Card>
+  <Card title="Conversations" icon="comments" href="/models/conversations">
+    Modelos de chat y flujos
+  </Card>
+  <Card title="Messaging" icon="paper-plane" href="/models/messaging">
+    Modelos de campañas
+  </Card>
+</CardGroup>

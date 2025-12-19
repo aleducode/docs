@@ -1,0 +1,172 @@
+---
+title: 'Design System'
+description: 'Sistema de diseño de Convey Pro'
+---
+
+## Overview
+
+El Design System de Convey Pro está basado en Tailwind CSS con componentes personalizados para mantener consistencia visual en toda la aplicación.
+
+## Stack de UI
+
+| Tecnología | Propósito |
+|------------|-----------|
+| Tailwind CSS | Framework de utilidades CSS |
+| Alpine.js | Interactividad ligera |
+| HTMX | Actualizaciones dinámicas sin JS |
+| Heroicons | Iconografía |
+
+---
+
+## Estructura de Templates
+
+```
+convey/templates/
+├── base.html              # Layout principal
+├── partials/
+│   ├── sidebar.html       # Sidebar de navegación
+│   ├── header.html        # Header con usuario
+│   └── alerts.html        # Mensajes flash
+├── components/
+│   ├── card.html
+│   ├── button.html
+│   ├── table.html
+│   └── modal.html
+├── conversations/
+├── messaging/
+└── users/
+```
+
+---
+
+## Layout Base
+
+```html
+<!-- base.html -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Convey Pro{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/alpinejs" defer></script>
+    <script src="https://unpkg.com/htmx.org"></script>
+</head>
+<body class="bg-gray-50">
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        {% include "partials/sidebar.html" %}
+
+        <!-- Main content -->
+        <main class="flex-1 overflow-y-auto">
+            {% include "partials/header.html" %}
+            <div class="p-6">
+                {% block content %}{% endblock %}
+            </div>
+        </main>
+    </div>
+</body>
+</html>
+```
+
+---
+
+## Patrones de Página
+
+### Página de Lista
+
+```html
+{% block content %}
+<div class="page-header">
+    <h1>Campañas</h1>
+    <a href="{% url 'campaign_create' %}" class="btn-primary">
+        Nueva Campaña
+    </a>
+</div>
+
+<div class="main-card">
+    <table class="data-table">
+        <!-- ... -->
+    </table>
+</div>
+{% endblock %}
+```
+
+### Página de Detalle
+
+```html
+{% block content %}
+<div class="page-header">
+    <div>
+        <nav class="breadcrumb">...</nav>
+        <h1>{{ campaign.name }}</h1>
+    </div>
+    <div class="flex gap-2">
+        <button class="btn-secondary">Editar</button>
+        <button class="btn-danger">Eliminar</button>
+    </div>
+</div>
+
+<div class="grid grid-cols-3 gap-6">
+    <div class="stat-card">...</div>
+    <div class="stat-card">...</div>
+    <div class="stat-card">...</div>
+</div>
+
+<div class="main-card mt-6">
+    <!-- Contenido principal -->
+</div>
+{% endblock %}
+```
+
+---
+
+## Componentes Comunes
+
+<CardGroup cols={2}>
+  <Card title="Colores" icon="palette" href="/design-system/colors">
+    Paleta de colores y variables CSS
+  </Card>
+  <Card title="Componentes" icon="puzzle-piece" href="/design-system/components">
+    Botones, cards, tablas, modales
+  </Card>
+  <Card title="Patrones" icon="layer-group" href="/design-system/patterns">
+    Layouts y patrones de página
+  </Card>
+</CardGroup>
+
+---
+
+## Principios de Diseño
+
+### 1. Consistencia
+
+Usar los mismos componentes y patrones en toda la aplicación.
+
+### 2. Claridad
+
+Interfaces claras con jerarquía visual definida.
+
+### 3. Eficiencia
+
+Minimizar clicks y tiempo para completar tareas.
+
+### 4. Feedback
+
+Siempre mostrar estado de acciones (loading, success, error).
+
+---
+
+## Responsive Design
+
+Breakpoints de Tailwind:
+
+| Breakpoint | Mín. ancho | CSS |
+|------------|------------|-----|
+| sm | 640px | `@media (min-width: 640px)` |
+| md | 768px | `@media (min-width: 768px)` |
+| lg | 1024px | `@media (min-width: 1024px)` |
+| xl | 1280px | `@media (min-width: 1280px)` |
+
+La aplicación está optimizada para desktop (lg+) pero es usable en tablets.

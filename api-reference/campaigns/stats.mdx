@@ -1,0 +1,250 @@
+---
+title: 'Estadísticas de Campaña'
+description: 'Obtener estadísticas detalladas de una campaña'
+api: 'GET /api/campaigns/{id}/stats/'
+---
+
+## Endpoint
+
+```
+GET /api/campaigns/{id}/stats/
+```
+
+## Parámetros de Path
+
+| Parámetro | Tipo | Descripción |
+|-----------|------|-------------|
+| `id` | integer | ID de la campaña |
+
+## Respuesta
+
+```json
+{
+  "campaign_id": 50,
+  "name": "Promoción Febrero 2024",
+  "status": "PROCESSING",
+  "totals": {
+    "recipients": 500,
+    "pending": 200,
+    "sent": 300,
+    "delivered": 280,
+    "read": 150,
+    "failed": 20
+  },
+  "percentages": {
+    "progress": 60.0,
+    "delivery_rate": 93.3,
+    "read_rate": 53.6,
+    "failure_rate": 6.7
+  },
+  "timing": {
+    "started_at": "2024-02-01T09:00:00Z",
+    "estimated_completion": "2024-02-01T09:17:00Z",
+    "messages_per_minute": 30,
+    "elapsed_minutes": 10,
+    "remaining_minutes": 7
+  },
+  "errors": {
+    "131049": {
+      "code": 131049,
+      "title": "Spam Protection",
+      "count": 12
+    },
+    "131047": {
+      "code": 131047,
+      "title": "Re-engagement Required",
+      "count": 8
+    }
+  },
+  "updated_at": "2024-02-01T09:10:00Z"
+}
+```
+
+## Campos de Respuesta
+
+<ResponseField name="totals" type="object">
+  Conteos absolutos de mensajes por estado
+</ResponseField>
+
+<ResponseField name="percentages" type="object">
+  Porcentajes calculados
+</ResponseField>
+
+<ResponseField name="timing" type="object">
+  Información de tiempos y velocidad
+</ResponseField>
+
+<ResponseField name="errors" type="object">
+  Desglose de errores por código WhatsApp
+</ResponseField>
+
+---
+
+## Obtener Destinatarios
+
+```
+GET /api/campaigns/{id}/recipients/
+```
+
+### Parámetros de Query
+
+| Parámetro | Tipo | Descripción |
+|-----------|------|-------------|
+| `status` | string | Filtrar por status: PENDING, SENT, DELIVERED, READ, FAILED |
+| `page` | integer | Número de página |
+| `page_size` | integer | Resultados por página |
+
+### Respuesta
+
+```json
+{
+  "count": 500,
+  "next": "https://app.convey.pro/api/campaigns/50/recipients/?page=2",
+  "results": [
+    {
+      "id": 1001,
+      "contact": {
+        "id": 42,
+        "phone_number": "+521234567890",
+        "name": "Juan Pérez"
+      },
+      "status": "DELIVERED",
+      "template_variables": {
+        "1": "Juan",
+        "2": "PROMO20"
+      },
+      "sent_at": "2024-02-01T09:01:00Z",
+      "delivered_at": "2024-02-01T09:01:05Z",
+      "read_at": null,
+      "error_code": null,
+      "error_message": null
+    },
+    {
+      "id": 1002,
+      "contact": {
+        "id": 43,
+        "phone_number": "+521234567891",
+        "name": "María López"
+      },
+      "status": "FAILED",
+      "template_variables": {
+        "1": "María",
+        "2": "PROMO20"
+      },
+      "sent_at": "2024-02-01T09:01:02Z",
+      "delivered_at": null,
+      "read_at": null,
+      "error_code": 131049,
+      "error_message": "Spam protection triggered"
+    }
+  ]
+}
+```
+
+---
+
+## Polling para Tiempo Real
+
+Para actualizar estadísticas en tiempo real, hacer polling cada 5 segundos:
+
+```javascript
+async function pollCampaignStats(campaignId) {
+  const response = await fetch(
+    `https://app.convey.pro/api/campaigns/${campaignId}/stats/`,
+    { headers: { "Authorization": "Token your-token-here" } }
+  );
+
+  const stats = await response.json();
+
+  // Actualizar UI
+  updateProgressBar(stats.percentages.progress);
+  updateCounters(stats.totals);
+
+  // Continuar si no ha terminado
+  if (stats.status === "PROCESSING") {
+    setTimeout(() => pollCampaignStats(campaignId), 5000);
+  }
+}
+```
+
+---
+
+## Acciones de Campaña
+
+### Pausar
+
+```
+POST /api/campaigns/{id}/pause/
+```
+
+### Reanudar
+
+```
+POST /api/campaigns/{id}/resume/
+```
+
+### Cancelar
+
+```
+POST /api/campaigns/{id}/cancel/
+```
+
+### Respuesta de Acciones
+
+```json
+{
+  "message": "Campaña pausada exitosamente",
+  "status": "PAUSED"
+}
+```
+
+---
+
+## Ejemplo Completo
+
+<CodeGroup>
+
+```python Python
+import requests
+import time
+
+BASE_URL = "https://app.convey.pro/api"
+HEADERS = {"Authorization": "Token your-token-here"}
+
+campaign_id = 50
+
+# Monitorear progreso
+while True:
+    response = requests.get(
+        f"{BASE_URL}/campaigns/{campaign_id}/stats/",
+        headers=HEADERS
+    )
+    stats = response.json()
+
+    print(f"Progreso: {stats['percentages']['progress']:.1f}%")
+    print(f"Enviados: {stats['totals']['sent']}/{stats['totals']['recipients']}")
+    print(f"Entregados: {stats['totals']['delivered']}")
+    print(f"Fallidos: {stats['totals']['failed']}")
+    print("---")
+
+    if stats["status"] in ["COMPLETED", "CANCELLED", "PAUSED"]:
+        break
+
+    time.sleep(5)
+
+# Ver errores
+if stats["errors"]:
+    print("\nErrores:")
+    for code, error in stats["errors"].items():
+        print(f"  {error['title']}: {error['count']}")
+```
+
+</CodeGroup>
+
+## Errores
+
+| Código | Descripción |
+|--------|-------------|
+| 401 | Token no proporcionado o inválido |
+| 403 | Sin permisos para ver esta campaña |
+| 404 | Campaña no encontrada |

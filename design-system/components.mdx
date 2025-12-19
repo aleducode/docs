@@ -1,0 +1,338 @@
+---
+title: 'Componentes'
+description: 'Componentes UI reutilizables'
+---
+
+## Botones
+
+### Primario
+
+```html
+<button class="bg-slate-900 text-white px-4 py-2 rounded-lg hover:bg-slate-800 transition-colors">
+    Guardar
+</button>
+```
+
+### Secundario
+
+```html
+<button class="bg-white text-gray-700 px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors">
+    Cancelar
+</button>
+```
+
+### Danger
+
+```html
+<button class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors">
+    Eliminar
+</button>
+```
+
+### Con Icono
+
+```html
+<button class="flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-lg">
+    <svg class="w-5 h-5"><!-- Heroicon --></svg>
+    Nueva Campaña
+</button>
+```
+
+### Loading State
+
+```html
+<button class="bg-slate-900 text-white px-4 py-2 rounded-lg opacity-75 cursor-not-allowed" disabled>
+    <svg class="animate-spin h-5 w-5 mr-2 inline"><!-- Spinner --></svg>
+    Procesando...
+</button>
+```
+
+---
+
+## Cards
+
+### Card Básica
+
+```html
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+    <h3 class="text-lg font-semibold text-gray-900">Título</h3>
+    <p class="text-gray-600 mt-2">Contenido de la card</p>
+</div>
+```
+
+### Stat Card
+
+```html
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+    <div class="flex items-center justify-between">
+        <div>
+            <p class="text-sm text-gray-500">Total Enviados</p>
+            <p class="text-2xl font-bold text-gray-900 mt-1">1,234</p>
+        </div>
+        <div class="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center">
+            <svg class="w-6 h-6 text-blue-500"><!-- Icon --></svg>
+        </div>
+    </div>
+    <p class="text-sm text-green-600 mt-4">
+        <span class="font-medium">+12%</span> vs. mes anterior
+    </p>
+</div>
+```
+
+### Main Card (contenedor principal)
+
+```html
+<div class="bg-white rounded-xl shadow-sm border border-gray-100">
+    <!-- Header opcional -->
+    <div class="px-6 py-4 border-b border-gray-100">
+        <h3 class="font-semibold text-gray-900">Título</h3>
+    </div>
+
+    <!-- Contenido -->
+    <div class="p-6">
+        <!-- ... -->
+    </div>
+</div>
+```
+
+---
+
+## Tablas
+
+```html
+<div class="overflow-x-auto">
+    <table class="w-full">
+        <thead>
+            <tr class="border-b border-gray-200">
+                <th class="text-left py-3 px-4 text-sm font-medium text-gray-500">
+                    Nombre
+                </th>
+                <th class="text-left py-3 px-4 text-sm font-medium text-gray-500">
+                    Status
+                </th>
+                <th class="text-right py-3 px-4 text-sm font-medium text-gray-500">
+                    Acciones
+                </th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+            <tr class="hover:bg-gray-50">
+                <td class="py-3 px-4">
+                    <span class="font-medium text-gray-900">Campaña 1</span>
+                </td>
+                <td class="py-3 px-4">
+                    <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-700">
+                        Completada
+                    </span>
+                </td>
+                <td class="py-3 px-4 text-right">
+                    <button class="text-gray-400 hover:text-gray-600">
+                        <svg class="w-5 h-5"><!-- ... --></svg>
+                    </button>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+```
+
+---
+
+## Badges / Pills
+
+### Status Badges
+
+```html
+<!-- Neutro -->
+<span class="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-700">
+    Borrador
+</span>
+
+<!-- Info -->
+<span class="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-700">
+    Programada
+</span>
+
+<!-- Warning -->
+<span class="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-700">
+    En proceso
+</span>
+
+<!-- Success -->
+<span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-700">
+    Completada
+</span>
+
+<!-- Danger -->
+<span class="px-2 py-1 text-xs rounded-full bg-red-100 text-red-700">
+    Fallida
+</span>
+```
+
+---
+
+## Forms
+
+### Input de Texto
+
+```html
+<div>
+    <label class="block text-sm font-medium text-gray-700 mb-1">
+        Nombre
+    </label>
+    <input
+        type="text"
+        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        placeholder="Ingresa el nombre"
+    >
+</div>
+```
+
+### Input con Error
+
+```html
+<div>
+    <label class="block text-sm font-medium text-gray-700 mb-1">
+        Email
+    </label>
+    <input
+        type="email"
+        class="w-full px-3 py-2 border border-red-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+    >
+    <p class="mt-1 text-sm text-red-600">Email inválido</p>
+</div>
+```
+
+### Select
+
+```html
+<div>
+    <label class="block text-sm font-medium text-gray-700 mb-1">
+        Línea WhatsApp
+    </label>
+    <select class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+        <option value="">Selecciona una línea</option>
+        <option value="1">Ventas (+1 555 123 4567)</option>
+        <option value="2">Soporte (+1 555 987 6543)</option>
+    </select>
+</div>
+```
+
+### Checkbox
+
+```html
+<label class="flex items-center gap-2 cursor-pointer">
+    <input type="checkbox" class="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+    <span class="text-sm text-gray-700">Acepto los términos</span>
+</label>
+```
+
+---
+
+## Modales
+
+```html
+<!-- Alpine.js modal -->
+<div x-data="{ open: false }">
+    <button @click="open = true" class="btn-primary">Abrir Modal</button>
+
+    <div
+        x-show="open"
+        x-cloak
+        class="fixed inset-0 z-50 flex items-center justify-center"
+    >
+        <!-- Overlay -->
+        <div
+            @click="open = false"
+            class="fixed inset-0 bg-black/50"
+        ></div>
+
+        <!-- Modal -->
+        <div class="relative bg-white rounded-xl shadow-xl max-w-md w-full mx-4 p-6">
+            <h3 class="text-lg font-semibold text-gray-900">Título del Modal</h3>
+            <p class="mt-2 text-gray-600">Contenido del modal...</p>
+
+            <div class="mt-6 flex justify-end gap-3">
+                <button @click="open = false" class="btn-secondary">
+                    Cancelar
+                </button>
+                <button class="btn-primary">
+                    Confirmar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+```
+
+---
+
+## Alerts
+
+### Success
+
+```html
+<div class="bg-green-50 border border-green-200 rounded-lg p-4 flex items-start gap-3">
+    <svg class="w-5 h-5 text-green-500 mt-0.5"><!-- Check icon --></svg>
+    <div>
+        <h4 class="font-medium text-green-800">Éxito</h4>
+        <p class="text-sm text-green-700 mt-1">La operación se completó correctamente.</p>
+    </div>
+</div>
+```
+
+### Error
+
+```html
+<div class="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
+    <svg class="w-5 h-5 text-red-500 mt-0.5"><!-- X icon --></svg>
+    <div>
+        <h4 class="font-medium text-red-800">Error</h4>
+        <p class="text-sm text-red-700 mt-1">No se pudo completar la operación.</p>
+    </div>
+</div>
+```
+
+---
+
+## Progress Bar
+
+```html
+<div class="w-full bg-gray-200 rounded-full h-2">
+    <div
+        class="bg-blue-600 h-2 rounded-full transition-all duration-300"
+        style="width: 65%"
+    ></div>
+</div>
+
+<!-- Con label -->
+<div class="flex items-center gap-4">
+    <div class="flex-1 bg-gray-200 rounded-full h-2">
+        <div class="bg-blue-600 h-2 rounded-full" style="width: 65%"></div>
+    </div>
+    <span class="text-sm font-medium text-gray-700">65%</span>
+</div>
+```
+
+---
+
+## Dropzone (Upload)
+
+```html
+<div
+    class="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-blue-400 transition-colors cursor-pointer"
+    x-data="{ dragging: false }"
+    @dragover.prevent="dragging = true"
+    @dragleave="dragging = false"
+    @drop.prevent="dragging = false"
+    :class="{ 'border-blue-400 bg-blue-50': dragging }"
+>
+    <svg class="w-12 h-12 mx-auto text-gray-400"><!-- Upload icon --></svg>
+    <p class="mt-4 text-gray-600">
+        Arrastra tu archivo aquí o
+        <span class="text-blue-600 font-medium">selecciona</span>
+    </p>
+    <p class="mt-1 text-sm text-gray-400">Excel (.xlsx) hasta 10MB</p>
+    <input type="file" class="hidden" accept=".xlsx,.xls">
+</div>
+```

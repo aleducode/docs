@@ -1,0 +1,301 @@
+---
+title: 'Docker'
+description: 'Containerización del proyecto'
+---
+
+## Desarrollo Local
+
+### Archivo: `local.yml`
+
+```yaml
+services:
+  django:
+    build:
+      context: .
+      dockerfile: ./compose/local/django/Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app:z
+    env_file:
+      - ./.envs/.local/.django
+      - ./.envs/.local/.postgres
+    depends_on:
+      - postgres
+      - redis
+
+  postgres:
+    image: postgres:15
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    env_file:
+      - ./.envs/.local/.postgres
+
+  redis:
+    image: redis:6
+
+  celeryworker:
+    build:
+      context: .
+      dockerfile: ./compose/local/django/Dockerfile
+    command: celery -A config.celery_app worker -l INFO
+    volumes:
+      - .:/app:z
+    env_file:
+      - ./.envs/.local/.django
+      - ./.envs/.local/.postgres
+    depends_on:
+      - postgres
+      - redis
+
+  celerybeat:
+    build:
+      context: .
+      dockerfile: ./compose/local/django/Dockerfile
+    command: celery -A config.celery_app beat -l INFO
+    depends_on:
+      - postgres
+      - redis
+
+  flower:
+    build:
+      context: .
+      dockerfile: ./compose/local/django/Dockerfile
+    command: celery -A config.celery_app flower
+    ports:
+      - "5555:5555"
+
+  mailpit:
+    image: axllent/mailpit
+    ports:
+      - "8025:8025"
+```
+
+---
+
+## Comandos
+
+### Levantar servicios
+
+```bash
+docker-compose -f local.yml up -d
+```
+
+### Ver logs
+
+```bash
+# Todos
+docker-compose -f local.yml logs -f
+
+# Específico
+docker-compose -f local.yml logs -f django
+docker-compose -f local.yml logs -f celeryworker
+```
+
+### Shell de Django
+
+```bash
+docker-compose -f local.yml run --rm django python manage.py shell
+```
+
+### Migraciones
+
+```bash
+docker-compose -f local.yml run --rm django python manage.py makemigrations
+docker-compose -f local.yml run --rm django python manage.py migrate
+```
+
+### Reiniciar servicio
+
+```bash
+docker-compose -f local.yml restart django
+docker-compose -f local.yml restart celeryworker
+```
+
+### Detener todo
+
+```bash
+docker-compose -f local.yml down
+```
+
+### Limpiar volúmenes
+
+```bash
+docker-compose -f local.yml down -v
+```
+
+---
+
+## Dockerfile
+
+### Django (Desarrollo)
+
+```dockerfile
+# compose/local/django/Dockerfile
+FROM python:3.12-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+WORKDIR /app
+
+# Instalar dependencias del sistema
+RUN apt-get update && apt-get install -y \
+    gcc \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Instalar dependencias Python
+COPY requirements/local.txt .
+RUN pip install --no-cache-dir -r local.txt
+
+COPY ./compose/local/django/entrypoint /entrypoint
+RUN chmod +x /entrypoint
+
+COPY ./compose/local/django/start /start
+RUN chmod +x /start
+
+ENTRYPOINT ["/entrypoint"]
+```
+
+### Entrypoint
+
+```bash
+#!/bin/bash
+set -o errexit
+set -o pipefail
+set -o nounset
+
+# Esperar PostgreSQL
+postgres_ready() {
+python << END
+import sys
+import psycopg2
+try:
+    psycopg2.connect("${DATABASE_URL}")
+except psycopg2.OperationalError:
+    sys.exit(-1)
+sys.exit(0)
+END
+}
+
+until postgres_ready; do
+  echo 'Waiting for PostgreSQL...'
+  sleep 1
+done
+echo 'PostgreSQL is available'
+
+exec "$@"
+```
+
+---
+
+## Producción
+
+### Archivo: `docker-compose.production.yml`
+
+```yaml
+services:
+  django:
+    build:
+      context: .
+      dockerfile: ./compose/production/django/Dockerfile
+    command: gunicorn config.wsgi:application --bind 0.0.0.0:5000
+    env_file:
+      - ./.envs/.production/.django
+      - ./.envs/.production/.postgres
+    depends_on:
+      - postgres
+      - redis
+
+  postgres:
+    image: postgres:15
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - postgres_backups:/backups
+    env_file:
+      - ./.envs/.production/.postgres
+
+  redis:
+    image: redis:6
+
+  celeryworker:
+    build:
+      context: .
+      dockerfile: ./compose/production/django/Dockerfile
+    command: celery -A config.celery_app worker -l INFO
+    env_file:
+      - ./.envs/.production/.django
+      - ./.envs/.production/.postgres
+
+  celerybeat:
+    build:
+      context: .
+      dockerfile: ./compose/production/django/Dockerfile
+    command: celery -A config.celery_app beat -l INFO -S django
+
+  traefik:
+    image: traefik:v2.10
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./compose/production/traefik:/etc/traefik
+```
+
+---
+
+## Variables de Entorno
+
+### `.envs/.local/.django`
+
+```env
+DJANGO_DEBUG=True
+DJANGO_SECRET_KEY=local-secret-key
+DJANGO_SETTINGS_MODULE=config.settings.local
+DATABASE_URL=postgres://postgres:postgres@postgres:5432/convey
+REDIS_URL=redis://redis:6379/0
+CELERY_BROKER_URL=redis://redis:6379/0
+```
+
+### `.envs/.local/.postgres`
+
+```env
+POSTGRES_HOST=postgres
+POSTGRES_PORT=5432
+POSTGRES_DB=convey
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=postgres
+```
+
+---
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Container no inicia">
+    ```bash
+    # Ver logs del build
+    docker-compose -f local.yml build --no-cache django
+
+    # Ver logs de inicio
+    docker-compose -f local.yml logs django
+    ```
+  </Accordion>
+
+  <Accordion title="PostgreSQL no está listo">
+    El entrypoint espera automáticamente. Si persiste:
+    ```bash
+    docker-compose -f local.yml restart postgres
+    docker-compose -f local.yml restart django
+    ```
+  </Accordion>
+
+  <Accordion title="Permisos de volumen">
+    ```bash
+    # En macOS/Linux
+    sudo chown -R $USER:$USER .
+    ```
+  </Accordion>
+</AccordionGroup>

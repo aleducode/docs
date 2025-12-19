@@ -1,0 +1,87 @@
+---
+title: 'Listar Contactos'
+description: 'Obtener lista de contactos'
+api: 'GET /api/contacts/'
+---
+
+## Endpoint
+
+```
+GET /api/contacts/
+```
+
+## Parámetros de Query
+
+| Parámetro | Tipo | Descripción |
+|-----------|------|-------------|
+| `search` | string | Buscar por nombre, teléfono o email |
+| `whatsapp_line` | integer | Filtrar por línea WhatsApp |
+| `has_conversation` | boolean | Solo contactos con conversaciones |
+| `page` | integer | Número de página |
+| `page_size` | integer | Resultados por página (default: 20) |
+
+## Respuesta
+
+```json
+{
+  "count": 500,
+  "next": "https://app.convey.pro/api/contacts/?page=2",
+  "previous": null,
+  "results": [
+    {
+      "id": 1,
+      "phone_number": "+521234567890",
+      "name": "Juan Pérez",
+      "email": "juan@example.com",
+      "metadata": {
+        "company": "Acme Corp",
+        "city": "CDMX"
+      },
+      "conversation_count": 3,
+      "last_message_at": "2024-01-15T10:30:00Z",
+      "created_at": "2024-01-01T08:00:00Z"
+    },
+    {
+      "id": 2,
+      "phone_number": "+521234567891",
+      "name": "María López",
+      "email": null,
+      "metadata": {},
+      "conversation_count": 1,
+      "last_message_at": "2024-01-14T15:00:00Z",
+      "created_at": "2024-01-05T12:00:00Z"
+    }
+  ]
+}
+```
+
+## Ejemplo de Uso
+
+<CodeGroup>
+
+```bash cURL
+curl -X GET "https://app.convey.pro/api/contacts/?search=juan" \
+  -H "Authorization: Token your-token-here"
+```
+
+```python Python
+import requests
+
+response = requests.get(
+    "https://app.convey.pro/api/contacts/",
+    params={"search": "juan", "page_size": 100},
+    headers={"Authorization": "Token your-token-here"}
+)
+
+contacts = response.json()
+print(f"Encontrados: {contacts['count']} contactos")
+```
+
+</CodeGroup>
+
+## Errores
+
+| Código | Descripción |
+|--------|-------------|
+| 401 | Token no proporcionado o inválido |
+| 403 | Sin permisos para ver contactos |

@@ -1,0 +1,244 @@
+---
+title: 'Colores'
+description: 'Paleta de colores del sistema de diseño'
+---
+
+## Paleta Principal
+
+### Brand Colors
+
+<div style={{display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '8px', marginBottom: '24px'}}>
+  <div style={{background: '#0f172a', padding: '16px', borderRadius: '8px', color: 'white', fontSize: '12px'}}>
+    Primary<br/>
+    #0f172a
+  </div>
+  <div style={{background: '#1e293b', padding: '16px', borderRadius: '8px', color: 'white', fontSize: '12px'}}>
+    Secondary<br/>
+    #1e293b
+  </div>
+  <div style={{background: '#3b82f6', padding: '16px', borderRadius: '8px', color: 'white', fontSize: '12px'}}>
+    Accent<br/>
+    #3b82f6
+  </div>
+  <div style={{background: '#10b981', padding: '16px', borderRadius: '8px', color: 'white', fontSize: '12px'}}>
+    Success<br/>
+    #10b981
+  </div>
+  <div style={{background: '#ef4444', padding: '16px', borderRadius: '8px', color: 'white', fontSize: '12px'}}>
+    Danger<br/>
+    #ef4444
+  </div>
+</div>
+
+---
+
+## Uso en Tailwind
+
+### Colores de Texto
+
+```html
+<!-- Textos principales -->
+<p class="text-gray-900">Texto principal</p>
+<p class="text-gray-600">Texto secundario</p>
+<p class="text-gray-400">Texto deshabilitado</p>
+
+<!-- Estados -->
+<p class="text-green-600">Éxito</p>
+<p class="text-red-600">Error</p>
+<p class="text-yellow-600">Advertencia</p>
+<p class="text-blue-600">Información</p>
+```
+
+### Colores de Fondo
+
+```html
+<!-- Fondos de página -->
+<div class="bg-gray-50">Fondo de página</div>
+<div class="bg-white">Fondo de card</div>
+
+<!-- Fondos de estado -->
+<div class="bg-green-50">Fondo éxito</div>
+<div class="bg-red-50">Fondo error</div>
+<div class="bg-yellow-50">Fondo advertencia</div>
+<div class="bg-blue-50">Fondo información</div>
+```
+
+---
+
+## Escala de Grises
+
+| Nombre | Valor | Uso |
+|--------|-------|-----|
+| `gray-50` | #f9fafb | Fondo de página |
+| `gray-100` | #f3f4f6 | Fondo hover |
+| `gray-200` | #e5e7eb | Bordes |
+| `gray-300` | #d1d5db | Bordes activos |
+| `gray-400` | #9ca3af | Texto placeholder |
+| `gray-500` | #6b7280 | Texto secundario |
+| `gray-600` | #4b5563 | Texto labels |
+| `gray-700` | #374151 | Texto body |
+| `gray-800` | #1f2937 | Texto heading |
+| `gray-900` | #111827 | Texto principal |
+
+---
+
+## Colores de Estado
+
+### Success (Verde)
+
+```html
+<div class="bg-green-50 text-green-700 border border-green-200">
+    Operación exitosa
+</div>
+```
+
+| Elemento | Color |
+|----------|-------|
+| Fondo | `green-50` |
+| Texto | `green-700` |
+| Borde | `green-200` |
+| Icono | `green-500` |
+
+### Error (Rojo)
+
+```html
+<div class="bg-red-50 text-red-700 border border-red-200">
+    Ocurrió un error
+</div>
+```
+
+| Elemento | Color |
+|----------|-------|
+| Fondo | `red-50` |
+| Texto | `red-700` |
+| Borde | `red-200` |
+| Icono | `red-500` |
+
+### Warning (Amarillo)
+
+```html
+<div class="bg-yellow-50 text-yellow-700 border border-yellow-200">
+    Advertencia
+</div>
+```
+
+### Info (Azul)
+
+```html
+<div class="bg-blue-50 text-blue-700 border border-blue-200">
+    Información
+</div>
+```
+
+---
+
+## Colores de Campaña Status
+
+```html
+<!-- DRAFT -->
+<span class="bg-gray-100 text-gray-700">Borrador</span>
+
+<!-- SCHEDULED -->
+<span class="bg-blue-100 text-blue-700">Programada</span>
+
+<!-- PROCESSING -->
+<span class="bg-yellow-100 text-yellow-700">En proceso</span>
+
+<!-- COMPLETED -->
+<span class="bg-green-100 text-green-700">Completada</span>
+
+<!-- PAUSED -->
+<span class="bg-orange-100 text-orange-700">Pausada</span>
+
+<!-- CANCELLED -->
+<span class="bg-red-100 text-red-700">Cancelada</span>
+```
+
+---
+
+## Colores de Mensaje Status
+
+```html
+<!-- PENDING -->
+<span class="text-gray-400">Pendiente</span>
+
+<!-- SENT -->
+<span class="text-blue-500">Enviado</span>
+
+<!-- DELIVERED -->
+<span class="text-green-500">Entregado</span>
+
+<!-- READ -->
+<span class="text-green-600">Leído</span>
+
+<!-- FAILED -->
+<span class="text-red-500">Fallido</span>
+```
+
+---
+
+## Sidebar
+
+```html
+<aside class="w-64 bg-slate-900 text-white">
+    <nav>
+        <a class="text-gray-300 hover:text-white hover:bg-slate-800">
+            Link normal
+        </a>
+        <a class="text-white bg-slate-800">
+            Link activo
+        </a>
+    </nav>
+</aside>
+```
+
+---
+
+## WhatsApp Preview
+
+Colores para la previsualización de mensajes estilo WhatsApp:
+
+```css
+/* Fondo del chat */
+.wa-chat-bg {
+    background-color: #e5ddd5;
+    background-image: url('/static/img/wa-pattern.png');
+}
+
+/* Burbuja mensaje entrante */
+.wa-bubble-incoming {
+    background-color: #ffffff;
+}
+
+/* Burbuja mensaje saliente */
+.wa-bubble-outgoing {
+    background-color: #dcf8c6;
+}
+
+/* Check de leído */
+.wa-check-read {
+    color: #53bdeb;
+}
+```
+
+---
+
+## Variables CSS Personalizadas
+
+Si necesitas definir variables globales:
+
+```css
+/* static/css/custom.css */
+:root {
+    --color-primary: #0f172a;
+    --color-secondary: #1e293b;
+    --color-accent: #3b82f6;
+
+    --sidebar-width: 16rem;
+    --header-height: 4rem;
+
+    --border-radius: 0.5rem;
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+}
+```

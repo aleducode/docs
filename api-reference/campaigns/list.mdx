@@ -1,0 +1,126 @@
+---
+title: 'Listar Campañas'
+description: 'Obtener lista de campañas de mensajería'
+api: 'GET /api/campaigns/'
+---
+
+## Endpoint
+
+```
+GET /api/campaigns/
+```
+
+## Parámetros de Query
+
+| Parámetro | Tipo | Descripción |
+|-----------|------|-------------|
+| `status` | string | Filtrar por status |
+| `whatsapp_line` | integer | ID de la línea WhatsApp |
+| `template` | integer | ID del template |
+| `created_after` | datetime | Creadas después de esta fecha |
+| `created_before` | datetime | Creadas antes de esta fecha |
+| `page` | integer | Número de página |
+| `page_size` | integer | Resultados por página |
+
+### Status disponibles
+
+| Status | Descripción |
+|--------|-------------|
+| `DRAFT` | Borrador, no iniciada |
+| `SCHEDULED` | Programada para envío futuro |
+| `PROCESSING` | En proceso de envío |
+| `PAUSED` | Pausada manualmente |
+| `COMPLETED` | Finalizada |
+| `CANCELLED` | Cancelada |
+
+## Respuesta
+
+```json
+{
+  "count": 25,
+  "next": null,
+  "previous": null,
+  "results": [
+    {
+      "id": 1,
+      "name": "Promoción Enero 2024",
+      "status": "COMPLETED",
+      "whatsapp_line": {
+        "id": 1,
+        "name": "Ventas"
+      },
+      "template": {
+        "id": 10,
+        "name": "promo_enero",
+        "language": "es"
+      },
+      "total_recipients": 500,
+      "sent_count": 500,
+      "delivered_count": 485,
+      "read_count": 320,
+      "failed_count": 15,
+      "scheduled_at": null,
+      "started_at": "2024-01-10T09:00:00Z",
+      "completed_at": "2024-01-10T09:45:00Z",
+      "created_at": "2024-01-09T15:00:00Z"
+    },
+    {
+      "id": 2,
+      "name": "Recordatorio Citas",
+      "status": "PROCESSING",
+      "whatsapp_line": {
+        "id": 1,
+        "name": "Ventas"
+      },
+      "template": {
+        "id": 15,
+        "name": "appointment_reminder",
+        "language": "es"
+      },
+      "total_recipients": 200,
+      "sent_count": 75,
+      "delivered_count": 60,
+      "read_count": 40,
+      "failed_count": 2,
+      "progress_percentage": 37.5,
+      "scheduled_at": null,
+      "started_at": "2024-01-15T10:00:00Z",
+      "completed_at": null,
+      "created_at": "2024-01-15T09:30:00Z"
+    }
+  ]
+}
+```
+
+## Ejemplo de Uso
+
+<CodeGroup>
+
+```bash cURL
+curl -X GET "https://app.convey.pro/api/campaigns/?status=PROCESSING" \
+  -H "Authorization: Token your-token-here"
+```
+
+```python Python
+import requests
+
+response = requests.get(
+    "https://app.convey.pro/api/campaigns/",
+    params={"status": "COMPLETED"},
+    headers={"Authorization": "Token your-token-here"}
+)
+
+campaigns = response.json()
+for campaign in campaigns["results"]:
+    rate = campaign["delivered_count"] / campaign["sent_count"] * 100
+    print(f"{campaign['name']}: {rate:.1f}% entregados")
+```
+
+</CodeGroup>
+
+## Errores
+
+| Código | Descripción |
+|--------|-------------|
+| 401 | Token no proporcionado o inválido |
+| 403 | Sin permisos para ver campañas |

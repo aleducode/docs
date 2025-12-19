@@ -1,0 +1,205 @@
+---
+title: 'Carga de Excel'
+description: 'Formato y procesamiento de archivos Excel'
+---
+
+## Formatos Soportados
+
+| Formato | Extensión | Librería |
+|---------|-----------|----------|
+| Excel 2007+ | `.xlsx` | openpyxl |
+| Excel 97-2003 | `.xls` | openpyxl |
+
+## Estructura del Archivo
+
+### Columna Requerida
+
+La primera fila debe contener headers. Se requiere una columna de teléfono:
+
+| Nombres válidos |
+|-----------------|
+| `phone` |
+| `telefono` |
+| `tel` |
+| `celular` |
+
+### Columnas de Variables
+
+Cualquier columna adicional puede mapearse a variables del template:
+
+| phone | nombre | producto | descuento |
+|-------|--------|----------|-----------|
+| +521234567890 | Juan Pérez | iPhone 15 | 20% |
+| +525551234567 | María García | MacBook Pro | 15% |
+| 5553456789 | Carlos López | iPad Air | 10% |
+
+## Normalización de Teléfonos
+
+El sistema normaliza automáticamente los números:
+
+```python
+def normalize_phone_number(phone_number: str) -> str:
+    """Normaliza a formato internacional con +"""
+    clean = phone_number.strip()
+    clean = clean.replace(" ", "").replace("-", "")
+    clean = clean.replace("(", "").replace(")", "")
+    clean = clean.replace(".", "").replace("_", "")
+
+    if not clean.startswith("+"):
+        if clean.startswith("00"):
+            clean = "+" + clean[2:]
+        else:
+            clean = "+" + clean
+
+    return clean
+```
+
+### Ejemplos
+
+| Input | Output |
+|-------|--------|
+| `1234567890` | `+1234567890` |
+| `+52 123 456 7890` | `+521234567890` |
+| `00521234567890` | `+521234567890` |
+| `(123) 456-7890` | `+1234567890` |
+
+## Detección de País
+
+```python
+from convey.messaging.models import detect_country_from_phone
+
+country = detect_country_from_phone("+521234567890")
+# Returns: "MX"
+
+country = detect_country_from_phone("+573001234567")
+# Returns: "CO"
+```
+
+### Prefijos Soportados
+
+| Prefijo | País | Código |
+|---------|------|--------|
+| +52 | México | MX |
+| +57 | Colombia | CO |
+| +54 | Argentina | AR |
+| +56 | Chile | CL |
+| +51 | Perú | PE |
+| +593 | Ecuador | EC |
+| +1 | USA/Canada | US |
+
+## Parser de Excel
+
+**Archivo:** `convey/messaging/utils/excel.py`
+
+```python
+def parse_excel_recipients(
+    file,
+    variable_mapping: dict[str, str]
+) -> list[dict]:
+    """
+    Parsea archivo Excel y retorna lista de recipients.
+
+    Args:
+        file: Archivo Excel subido
+        variable_mapping: {"columna": "variable"}
+
+    Returns:
+        [{"phone": "+52...", "variables": {"1": "valor"}}]
+    """
+    import openpyxl
+
+    wb = openpyxl.load_workbook(file, data_only=True)
+    ws = wb.active
+
+    headers = [cell.value for cell in ws[1]]
+    phone_col = find_phone_column(headers)
+
+    recipients = []
+    for row in ws.iter_rows(min_row=2, values_only=True):
+        phone = normalize_phone_number(str(row[phone_col]))
+        if not phone:
+            continue
+
+        variables = {}
+        for col_name, var_name in variable_mapping.items():
+            col_idx = headers.index(col_name)
+            if row[col_idx]:
+                variables[var_name] = str(row[col_idx])
+
+        recipients.append({
+            "phone": phone,
+            "variables": variables,
+        })
+
+    return recipients
+```
+
+## Validaciones
+
+### En el Parser
+
+<Check>Archivo es Excel válido (.xlsx, .xls)</Check>
+<Check>Tiene al menos una columna de teléfono</Check>
+<Check>Teléfonos son normalizables</Check>
+
+### En el Wizard
+
+<Check>Al menos 1 destinatario válido</Check>
+<Check>Variables requeridas del template mapeadas</Check>
+<Check>Sin duplicados de teléfono</Check>
+
+### Código de Validación
+
+```python
+def validate_recipients(recipients: list, template) -> dict:
+    required_vars = template.get_variables()
+    seen_phones = set()
+    valid_count = 0
+    invalid_count = 0
+    duplicate_count = 0
+
+    for r in recipients:
+        phone = r.get("phone", "")
+
+        if phone in seen_phones:
+            duplicate_count += 1
+            continue
+        seen_phones.add(phone)
+
+        if not phone or len(phone) < 10:
+            invalid_count += 1
+            continue
+
+        valid_count += 1
+
+    return {
+        "valid": valid_count > 0,
+        "valid_count": valid_count,
+        "invalid_count": invalid_count,
+        "duplicate_count": duplicate_count,
+    }
+```
+
+## Límites
+
+| Parámetro | Límite |
+|-----------|--------|
+| Tamaño máximo | 10 MB |
+| Filas máximas | 10,000 |
+| Columnas máximas | 50 |
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="No se encontró columna de teléfono">
+    Verificar que la primera fila tenga headers y la columna se llame: `phone`, `telefono`, `tel`, o `celular`
+  </Accordion>
+  <Accordion title="Teléfonos no válidos">
+    - Verificar formato del número
+    - Debe incluir código de país o el sistema lo agregará
+  </Accordion>
+  <Accordion title="Variables vacías">
+    - Verificar que las celdas no estén vacías
+    - Verificar mapeo de columnas correcto
+  </Accordion>
+</AccordionGroup>

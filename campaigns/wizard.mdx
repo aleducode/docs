@@ -1,0 +1,187 @@
+---
+title: 'Wizard de Campañas'
+description: 'Creación guiada de campañas en 4 pasos'
+---
+
+## Step 1: Selección de Template
+
+**URL:** `/messaging/campaigns/create/`
+
+<Frame>
+  <img src="/images/wizard-step1.png" alt="Step 1" />
+</Frame>
+
+### Funcionalidades
+
+- Selector de línea WhatsApp
+- Grid de templates con búsqueda
+- Filtros por categoría (Marketing, Utility, Authentication)
+- Preview estilo WhatsApp del template seleccionado
+
+### Datos en Sesión
+
+```python
+request.session["campaign_wizard"] = {
+    "line_id": 1,
+    "template_id": 5,
+}
+```
+
+---
+
+## Step 2: Carga de Destinatarios
+
+**URL:** `/messaging/campaigns/create/step2/`
+
+<Frame>
+  <img src="/images/wizard-step2.png" alt="Step 2" />
+</Frame>
+
+### Funcionalidades
+
+- Dropzone para subir Excel (.xlsx, .xls)
+- Parsing automático del archivo
+- Mapeo de columnas a variables del template
+- Preview de primeros 5 registros
+- Campo opcional para imagen de header
+
+### Formato del Excel
+
+| phone | nombre | producto | descuento |
+|-------|--------|----------|-----------|
+| +521234567890 | Juan | iPhone 15 | 20% |
+| +525551234567 | María | MacBook | 15% |
+
+### Mapeo de Variables
+
+```javascript
+// Usuario mapea columnas a variables
+{
+  "nombre": "1",    // {{1}} = nombre
+  "producto": "2",  // {{2}} = producto
+  "descuento": "3"  // {{3}} = descuento
+}
+```
+
+---
+
+## Step 3: Preview y Configuración
+
+**URL:** `/messaging/campaigns/create/step3/`
+
+<Frame>
+  <img src="/images/wizard-step3.png" alt="Step 3" />
+</Frame>
+
+### Funcionalidades
+
+- Preview del mensaje con datos reales
+- Navegación entre destinatarios
+- Stats: Total recipients, Costo estimado
+- Configuración de rate limit
+- Fecha/hora programada (opcional)
+
+### Cálculo de Costos
+
+```python
+def calculate_campaign_cost(recipients, template):
+    total_cost = Decimal("0.0000")
+    for recipient in recipients:
+        country = detect_country_from_phone(recipient["phone"])
+        price = template.get_price_for_country(country)
+        total_cost += price
+    return total_cost
+```
+
+---
+
+## Step 4: Confirmación
+
+**URL:** `/messaging/campaigns/create/step4/`
+
+<Frame>
+  <img src="/images/wizard-step4.png" alt="Step 4" />
+</Frame>
+
+### Funcionalidades
+
+- Resumen completo de la campaña
+- Checkbox de confirmación
+- Botón para lanzar
+
+### Al Confirmar
+
+```python
+# 1. Crear campaña
+campaign = OutboundCampaign.objects.create(
+    name=f"Campaña {timezone.now()}",
+    whatsapp_line=line,
+    template=template,
+    status=OutboundCampaign.Status.DRAFT,
+    created_by=request.user,
+)
+
+# 2. Crear recipients
+for recipient_data in recipients:
+    contact, _ = Contact.objects.get_or_create(
+        phone_number=recipient_data["phone"]
+    )
+    CampaignRecipient.objects.create(
+        campaign=campaign,
+        contact=contact,
+        template_variables=recipient_data["variables"],
+    )
+
+# 3. Disparar task de Celery
+process_campaign.delay(campaign.id)
+
+# 4. Redirect a vista de detalle
+return redirect("messaging:campaign_detail", campaign_id=campaign.id)
+```
+
+---
+
+## Vista de Detalle
+
+**URL:** `/messaging/campaigns/<id>/`
+
+### Tabs
+
+<Tabs>
+  <Tab title="Resumen">
+    - Status badge grande
+    - Stats cards: Enviados, Entregados, Leídos, Fallidos
+    - Barra de progreso
+    - Costos: Estimado vs Real
+    - Controles: Pausar/Reanudar/Cancelar
+  </Tab>
+  <Tab title="Destinatarios">
+    - Tabla paginada de recipients
+    - Filtros por status
+    - Búsqueda por teléfono/nombre
+    - Link a detalle de cada mensaje
+  </Tab>
+  <Tab title="Configuración">
+    - Info de la campaña
+    - Template utilizado
+    - Rate limit
+    - Timestamps
+  </Tab>
+</Tabs>
+
+### Polling de Stats
+
+```javascript
+// Actualizar cada 5 segundos mientras está RUNNING
+setInterval(async () => {
+  const response = await fetch(`/messaging/api/campaigns/${id}/stats/`);
+  const stats = await response.json();
+
+  if (stats.status !== 'RUNNING') {
+    clearInterval(this);
+  }
+
+  updateProgressBar(stats.progress_percent);
+  updateStatsCards(stats);
+}, 5000);
+```

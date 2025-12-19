@@ -1,0 +1,132 @@
+---
+title: 'Detalle de Conversación'
+description: 'Obtener información detallada de una conversación'
+api: 'GET /api/conversations/{id}/'
+---
+
+## Endpoint
+
+```
+GET /api/conversations/{id}/
+```
+
+## Parámetros de Path
+
+| Parámetro | Tipo | Descripción |
+|-----------|------|-------------|
+| `id` | integer | ID de la conversación |
+
+## Headers
+
+```
+Authorization: Token <your-token>
+Content-Type: application/json
+```
+
+## Respuesta Exitosa
+
+```json
+{
+  "id": 1,
+  "contact": {
+    "id": 42,
+    "phone_number": "+521234567890",
+    "name": "Juan Pérez",
+    "email": "juan@example.com",
+    "metadata": {
+      "company": "Acme Corp",
+      "city": "CDMX"
+    }
+  },
+  "whatsapp_line": {
+    "id": 1,
+    "name": "Ventas",
+    "phone_number": "+15551234567",
+    "waba_id": "123456789"
+  },
+  "status": "ACTIVE",
+  "assigned_agent": {
+    "id": 1,
+    "user": {
+      "id": 5,
+      "email": "maria@company.com",
+      "name": "María García"
+    },
+    "is_active": true
+  },
+  "last_message_at": "2024-01-15T10:30:00Z",
+  "unread_count": 2,
+  "message_count": 45,
+  "active_flow_execution": {
+    "id": 123,
+    "flow": {
+      "id": 5,
+      "name": "Flujo de Ventas"
+    },
+    "status": "IN_PROGRESS",
+    "current_step": "ask_product"
+  },
+  "tags": ["vip", "interesado"],
+  "created_at": "2024-01-10T08:00:00Z",
+  "updated_at": "2024-01-15T10:30:00Z"
+}
+```
+
+## Campos de Respuesta
+
+<ResponseField name="id" type="integer">
+  ID único de la conversación
+</ResponseField>
+
+<ResponseField name="contact" type="object">
+  Información del contacto
+</ResponseField>
+
+<ResponseField name="whatsapp_line" type="object">
+  Línea de WhatsApp asociada
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  Estado: `ACTIVE`, `WAITING`, `CLOSED`
+</ResponseField>
+
+<ResponseField name="assigned_agent" type="object">
+  Agente asignado (puede ser null)
+</ResponseField>
+
+<ResponseField name="active_flow_execution" type="object">
+  Ejecución de flujo activa (puede ser null)
+</ResponseField>
+
+## Ejemplo de Uso
+
+<CodeGroup>
+
+```bash cURL
+curl -X GET "https://app.convey.pro/api/conversations/1/" \
+  -H "Authorization: Token your-token-here"
+```
+
+```python Python
+import requests
+
+response = requests.get(
+    "https://app.convey.pro/api/conversations/1/",
+    headers={"Authorization": "Token your-token-here"}
+)
+
+conversation = response.json()
+print(f"Conversación con: {conversation['contact']['name']}")
+print(f"Status: {conversation['status']}")
+print(f"Mensajes: {conversation['message_count']}")
+```
+
+</CodeGroup>
+
+## Errores
+
+| Código | Descripción |
+|--------|-------------|
+| 401 | Token no proporcionado o inválido |
+| 403 | Sin permisos para ver esta conversación |
+| 404 | Conversación no encontrada |

@@ -1,0 +1,191 @@
+---
+title: 'Crear Campaña'
+description: 'Crear una nueva campaña de mensajería'
+api: 'POST /api/campaigns/'
+---
+
+## Endpoint
+
+```
+POST /api/campaigns/
+```
+
+## Body
+
+```json
+{
+  "name": "Promoción Febrero 2024",
+  "whatsapp_line_id": 1,
+  "template_id": 10,
+  "recipients": [
+    {
+      "phone_number": "+521234567890",
+      "variables": {
+        "1": "Juan",
+        "2": "PROMO20"
+      }
+    },
+    {
+      "phone_number": "+521234567891",
+      "variables": {
+        "1": "María",
+        "2": "PROMO20"
+      }
+    }
+  ],
+  "rate_limit": 30,
+  "scheduled_at": "2024-02-01T09:00:00Z"
+}
+```
+
+## Campos
+
+| Campo | Tipo | Requerido | Descripción |
+|-------|------|-----------|-------------|
+| `name` | string | Si | Nombre de la campaña |
+| `whatsapp_line_id` | integer | Si | ID de la línea WhatsApp |
+| `template_id` | integer | Si | ID del template a usar |
+| `recipients` | array | Si | Lista de destinatarios |
+| `rate_limit` | integer | No | Mensajes por minuto (default: 30) |
+| `scheduled_at` | datetime | No | Fecha/hora de inicio programado |
+
+### Formato de Recipients
+
+```json
+{
+  "phone_number": "+521234567890",
+  "variables": {
+    "1": "valor_variable_1",
+    "2": "valor_variable_2"
+  }
+}
+```
+
+## Respuesta Exitosa
+
+**Status: 201 Created**
+
+```json
+{
+  "id": 50,
+  "name": "Promoción Febrero 2024",
+  "status": "SCHEDULED",
+  "whatsapp_line": {
+    "id": 1,
+    "name": "Ventas"
+  },
+  "template": {
+    "id": 10,
+    "name": "promo_febrero",
+    "language": "es"
+  },
+  "total_recipients": 2,
+  "rate_limit": 30,
+  "scheduled_at": "2024-02-01T09:00:00Z",
+  "created_at": "2024-01-15T10:30:00Z"
+}
+```
+
+## Crear con Archivo Excel
+
+Para campañas grandes, puedes subir un archivo Excel:
+
+```
+POST /api/campaigns/upload/
+Content-Type: multipart/form-data
+```
+
+```bash
+curl -X POST "https://app.convey.pro/api/campaigns/upload/" \
+  -H "Authorization: Token your-token-here" \
+  -F "name=Campaña Excel" \
+  -F "whatsapp_line_id=1" \
+  -F "template_id=10" \
+  -F "file=@recipients.xlsx" \
+  -F "column_mapping={\"phone\": \"A\", \"name\": \"B\", \"code\": \"C\"}"
+```
+
+## Ejemplo de Uso
+
+<CodeGroup>
+
+```python Python
+import requests
+
+# Crear campaña simple
+response = requests.post(
+    "https://app.convey.pro/api/campaigns/",
+    headers={
+        "Authorization": "Token your-token-here",
+        "Content-Type": "application/json"
+    },
+    json={
+        "name": "Mi Primera Campaña",
+        "whatsapp_line_id": 1,
+        "template_id": 10,
+        "recipients": [
+            {
+                "phone_number": "+521234567890",
+                "variables": {"1": "Juan", "2": "DESCUENTO10"}
+            }
+        ],
+        "rate_limit": 30
+    }
+)
+
+if response.status_code == 201:
+    campaign = response.json()
+    print(f"Campaña creada: {campaign['id']}")
+```
+
+```javascript JavaScript
+const response = await fetch("https://app.convey.pro/api/campaigns/", {
+  method: "POST",
+  headers: {
+    "Authorization": "Token your-token-here",
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({
+    name: "Mi Primera Campaña",
+    whatsapp_line_id: 1,
+    template_id: 10,
+    recipients: [
+      {
+        phone_number: "+521234567890",
+        variables: { "1": "Juan", "2": "DESCUENTO10" }
+      }
+    ]
+  })
+});
+
+const campaign = await response.json();
+console.log(`Campaña creada: ${campaign.id}`);
+```
+
+</CodeGroup>
+
+## Iniciar Campaña
+
+Una vez creada, iniciar manualmente:
+
+```
+POST /api/campaigns/{id}/start/
+```
+
+**Respuesta:**
+
+```json
+{
+  "message": "Campaña iniciada",
+  "status": "PROCESSING"
+}
+```
+
+## Errores
+
+| Código | Descripción |
+|--------|-------------|
+| 400 | Datos inválidos |
+| 401 | Token no proporcionado o inválido |
+| 404 | Template o línea no encontrados |
+| 422 | Template no aprobado por WhatsApp |

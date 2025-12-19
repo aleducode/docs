@@ -1,0 +1,126 @@
+---
+title: 'Crear Contacto'
+description: 'Crear un nuevo contacto'
+api: 'POST /api/contacts/'
+---
+
+## Endpoint
+
+```
+POST /api/contacts/
+```
+
+## Body
+
+```json
+{
+  "phone_number": "+521234567890",
+  "name": "Juan Pérez",
+  "email": "juan@example.com",
+  "metadata": {
+    "company": "Acme Corp",
+    "city": "CDMX",
+    "source": "landing_page"
+  }
+}
+```
+
+## Campos
+
+| Campo | Tipo | Requerido | Descripción |
+|-------|------|-----------|-------------|
+| `phone_number` | string | Si | Número en formato E.164 (+521234567890) |
+| `name` | string | No | Nombre del contacto |
+| `email` | string | No | Email del contacto |
+| `metadata` | object | No | Datos adicionales en formato JSON |
+
+## Respuesta Exitosa
+
+**Status: 201 Created**
+
+```json
+{
+  "id": 100,
+  "phone_number": "+521234567890",
+  "name": "Juan Pérez",
+  "email": "juan@example.com",
+  "metadata": {
+    "company": "Acme Corp",
+    "city": "CDMX",
+    "source": "landing_page"
+  },
+  "conversation_count": 0,
+  "created_at": "2024-01-15T10:30:00Z"
+}
+```
+
+## Ejemplo de Uso
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST "https://app.convey.pro/api/contacts/" \
+  -H "Authorization: Token your-token-here" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "phone_number": "+521234567890",
+    "name": "Juan Pérez",
+    "email": "juan@example.com"
+  }'
+```
+
+```python Python
+import requests
+
+response = requests.post(
+    "https://app.convey.pro/api/contacts/",
+    headers={
+        "Authorization": "Token your-token-here",
+        "Content-Type": "application/json"
+    },
+    json={
+        "phone_number": "+521234567890",
+        "name": "Juan Pérez",
+        "email": "juan@example.com",
+        "metadata": {"source": "api"}
+    }
+)
+
+if response.status_code == 201:
+    contact = response.json()
+    print(f"Contacto creado: {contact['id']}")
+else:
+    print(f"Error: {response.json()}")
+```
+
+</CodeGroup>
+
+## Validaciones
+
+- `phone_number` debe ser único
+- `phone_number` debe estar en formato E.164
+- `email` debe ser un email válido (si se proporciona)
+
+## Errores
+
+| Código | Descripción |
+|--------|-------------|
+| 400 | Datos inválidos |
+| 401 | Token no proporcionado o inválido |
+| 409 | Contacto con ese número ya existe |
+
+### Ejemplo de Error 400
+
+```json
+{
+  "phone_number": ["Este número de teléfono no es válido."]
+}
+```
+
+### Ejemplo de Error 409
+
+```json
+{
+  "phone_number": ["Ya existe un contacto con este número."]
+}
+```

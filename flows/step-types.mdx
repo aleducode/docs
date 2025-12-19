@@ -1,0 +1,305 @@
+---
+title: 'Tipos de Paso'
+description: 'Los 24 tipos de FlowStep disponibles'
+---
+
+## Mensajería
+
+### SEND_MESSAGE
+
+Envía un mensaje de texto.
+
+```json
+{
+  "message": "Hola {{user_name}}, bienvenido!"
+}
+```
+
+### SEND_IMAGE
+
+Envía una imagen.
+
+```json
+{
+  "image_url": "https://example.com/image.jpg",
+  "caption": "Mira esta imagen"
+}
+```
+
+### SEND_DOCUMENT
+
+Envía un documento.
+
+```json
+{
+  "document_url": "https://example.com/file.pdf",
+  "filename": "documento.pdf"
+}
+```
+
+### SEND_AUDIO
+
+Envía un audio.
+
+```json
+{
+  "audio_url": "https://example.com/audio.mp3"
+}
+```
+
+---
+
+## Interacción
+
+### ASK_QUESTION
+
+Pregunta y espera respuesta del usuario.
+
+```json
+{
+  "question": "¿Cuál es tu nombre?",
+  "variable_name": "user_name",
+  "timeout_seconds": 300
+}
+```
+
+<Info>
+Después de este paso, el flujo queda en PAUSED hasta que el usuario responde o se agota el timeout.
+</Info>
+
+### SEND_LIST
+
+Envía una lista interactiva.
+
+```json
+{
+  "header": "Selecciona una opción",
+  "body": "Elige del menú",
+  "button_text": "Ver opciones",
+  "sections": [
+    {
+      "title": "Productos",
+      "rows": [
+        {"id": "prod_1", "title": "iPhone", "description": "$999"},
+        {"id": "prod_2", "title": "MacBook", "description": "$1299"}
+      ]
+    }
+  ],
+  "variable_name": "selected_product"
+}
+```
+
+### SEND_BUTTONS
+
+Envía botones de respuesta rápida.
+
+```json
+{
+  "body": "¿Deseas continuar?",
+  "buttons": [
+    {"id": "yes", "title": "Sí"},
+    {"id": "no", "title": "No"}
+  ],
+  "variable_name": "user_choice"
+}
+```
+
+---
+
+## Lógica
+
+### SET_VARIABLE
+
+Guarda un valor en el contexto.
+
+```json
+{
+  "variable_name": "order_total",
+  "value": "{{product_price}} * {{quantity}}"
+}
+```
+
+### CONDITIONAL
+
+Evalúa una condición (usado con transiciones).
+
+```json
+{
+  "condition": "{{user_age}} >= 18"
+}
+```
+
+### DELAY
+
+Espera un tiempo antes de continuar.
+
+```json
+{
+  "delay_seconds": 5
+}
+```
+
+---
+
+## APIs
+
+### API_CALL
+
+Llama a una API externa.
+
+```json
+{
+  "url": "https://api.example.com/orders",
+  "method": "POST",
+  "headers": {
+    "Authorization": "Bearer {{api_token}}"
+  },
+  "body": {
+    "customer_name": "{{user_name}}",
+    "product_id": "{{selected_product}}"
+  },
+  "response_variable": "api_response"
+}
+```
+
+### Ejemplo de respuesta
+
+```python
+# Después del API_CALL
+context["api_response"] = {
+    "status_code": 200,
+    "body": {"order_id": "12345", "status": "created"}
+}
+
+# Acceder en siguientes pasos
+"Tu orden es: {{api_response.body.order_id}}"
+```
+
+---
+
+## Inteligencia Artificial
+
+### OPENAI_ASSISTANT
+
+Ejecuta un asistente de OpenAI.
+
+```json
+{
+  "assistant_id": "asst_abc123",
+  "user_message": "{{last_input}}",
+  "response_variable": "ai_response"
+}
+```
+
+### TEXT_TO_SPEECH
+
+Convierte texto a audio.
+
+```json
+{
+  "text": "{{message_to_speak}}",
+  "voice": "alloy",
+  "response_variable": "audio_url"
+}
+```
+
+### AUDIO_TO_TEXT
+
+Transcribe audio a texto.
+
+```json
+{
+  "audio_variable": "user_audio",
+  "response_variable": "transcription"
+}
+```
+
+---
+
+## Transferencias
+
+### TRANSFER_TO_AGENT
+
+Transfiere a un agente humano.
+
+```json
+{
+  "message": "Te estamos transfiriendo con un agente...",
+  "priority": 1
+}
+```
+
+<Warning>
+Este paso termina el flujo y cambia el status de la conversación a `WAITING_FOR_AGENT`.
+</Warning>
+
+### TRIGGER_FLOW
+
+Dispara otro flujo.
+
+```json
+{
+  "flow_id": 5,
+  "pass_context": true
+}
+```
+
+### END_FLOW
+
+Termina el flujo.
+
+```json
+{
+  "final_message": "Gracias por contactarnos!",
+  "mark_resolved": true
+}
+```
+
+---
+
+## Utilidades
+
+### SAVE_CONTACT
+
+Guarda datos en el contacto.
+
+```json
+{
+  "name": "{{user_name}}",
+  "email": "{{user_email}}"
+}
+```
+
+### ADD_TAG
+
+Agrega un tag a la conversación.
+
+```json
+{
+  "tag_id": 3
+}
+```
+
+### ADD_NOTE
+
+Agrega una nota interna.
+
+```json
+{
+  "note": "Cliente interesado en {{selected_product}}"
+}
+```
+
+---
+
+## Variables
+
+Todos los pasos soportan interpolación de variables:
+
+| Sintaxis | Descripción |
+|----------|-------------|
+| `{{variable}}` | Variable del contexto |
+| `{{contact.name}}` | Datos del contacto |
+| `{{contact.phone_number}}` | Teléfono del contacto |
+| `{{api_response.body.field}}` | Respuesta de API |
+| `{{last_input}}` | Última respuesta del usuario |

@@ -1,0 +1,247 @@
+---
+title: 'WhatsApp Cloud API'
+description: 'Integración con Meta WhatsApp Business'
+---
+
+## Overview
+
+Convey Pro utiliza la WhatsApp Cloud API de Meta para enviar y recibir mensajes.
+
+## Configuración
+
+### 1. Crear App en Meta
+
+1. Ir a [Meta for Developers](https://developers.facebook.com)
+2. Crear una nueva app de tipo "Business"
+3. Agregar el producto "WhatsApp"
+
+### 2. Obtener Credenciales
+
+| Credential | Descripción |
+|------------|-------------|
+| `Phone Number ID` | ID del número de teléfono |
+| `WABA ID` | WhatsApp Business Account ID |
+| `Access Token` | Token de acceso permanente |
+
+### 3. Configurar en Convey Pro
+
+En Django Admin → WhatsApp Lines:
+
+```python
+WhatsAppLine.objects.create(
+    name="Línea Principal",
+    phone_number="+521234567890",
+    phone_number_id="1234567890",
+    waba_id="9876543210",
+    access_token="EAAxxxxxxx...",
+    is_active=True,
+)
+```
+
+---
+
+## WhatsApp Client
+
+**Archivo:** `convey/utils/services/whatsapp.py`
+
+```python
+class WhatsAppClient:
+    BASE_URL = "https://graph.facebook.com/v23.0"
+
+    def __init__(self, line: WhatsAppLine):
+        self.line = line
+        self.phone_number_id = line.phone_number_id
+        self.access_token = line.access_token
+
+    def send_message(self, to: str, message: str) -> dict:
+        """Envía mensaje de texto."""
+        url = f"{self.BASE_URL}/{self.phone_number_id}/messages"
+        payload = {
+            "messaging_product": "whatsapp",
+            "recipient_type": "individual",
+            "to": to,
+            "type": "text",
+            "text": {"body": message}
+        }
+        return self._make_request("POST", url, json=payload)
+
+    def send_template(self, to: str, template_name: str,
+                      language: str, components: list) -> dict:
+        """Envía template HSM."""
+        url = f"{self.BASE_URL}/{self.phone_number_id}/messages"
+        payload = {
+            "messaging_product": "whatsapp",
+            "recipient_type": "individual",
+            "to": to,
+            "type": "template",
+            "template": {
+                "name": template_name,
+                "language": {"code": language},
+                "components": components,
+            }
+        }
+        return self._make_request("POST", url, json=payload)
+```
+
+---
+
+## Tipos de Mensaje
+
+### Texto
+
+```python
+client.send_message("+521234567890", "Hola!")
+```
+
+### Imagen
+
+```python
+client.send_image(
+    to="+521234567890",
+    image_url="https://example.com/image.jpg",
+    caption="Mira esta imagen",
+)
+```
+
+### Template HSM
+
+```python
+client.send_template(
+    to="+521234567890",
+    template_name="order_confirmation",
+    language="es",
+    components=[
+        {
+            "type": "body",
+            "parameters": [
+                {"type": "text", "text": "Juan"},
+                {"type": "text", "text": "ORD-12345"},
+            ]
+        }
+    ],
+)
+```
+
+### Lista Interactiva
+
+```python
+client.send_interactive_list(
+    to="+521234567890",
+    header="Menú Principal",
+    body="Selecciona una opción",
+    button_text="Ver opciones",
+    sections=[
+        {
+            "title": "Productos",
+            "rows": [
+                {"id": "1", "title": "iPhone", "description": "$999"},
+                {"id": "2", "title": "MacBook", "description": "$1299"},
+            ]
+        }
+    ],
+)
+```
+
+### Botones
+
+```python
+client.send_interactive_buttons(
+    to="+521234567890",
+    body="¿Deseas continuar?",
+    buttons=[
+        {"id": "yes", "title": "Sí"},
+        {"id": "no", "title": "No"},
+    ],
+)
+```
+
+---
+
+## Sincronización de Templates
+
+```python
+def sync_templates(line: WhatsAppLine):
+    """Sincroniza templates desde Meta."""
+    client = WhatsAppClient(line)
+    templates = client.get_templates()
+
+    for template_data in templates:
+        MessageTemplate.objects.update_or_create(
+            whatsapp_line=line,
+            template_id=template_data["id"],
+            defaults={
+                "name": template_data["name"],
+                "language": template_data["language"],
+                "status": template_data["status"],
+                "category": template_data["category"],
+                "components": template_data["components"],
+                "last_synced": timezone.now(),
+            }
+        )
+```
+
+---
+
+## Health Check
+
+```python
+def check_line_health(line: WhatsAppLine) -> dict:
+    """Verifica estado de la línea."""
+    client = WhatsAppClient(line)
+    try:
+        response = client.get_phone_number_info()
+        return {
+            "healthy": True,
+            "quality_rating": response.get("quality_rating"),
+            "messaging_limit": response.get("messaging_limit_tier"),
+        }
+    except Exception as e:
+        return {
+            "healthy": False,
+            "error": str(e),
+        }
+```
+
+---
+
+## Límites de API
+
+| Recurso | Límite |
+|---------|--------|
+| Mensajes/segundo | 80 por número |
+| Templates/día | Según tier |
+| Media size | 16MB para video, 100MB para docs |
+
+### Tiers de Mensajería
+
+| Tier | Conversaciones/día |
+|------|-------------------|
+| Tier 1 | 1,000 |
+| Tier 2 | 10,000 |
+| Tier 3 | 100,000 |
+| Tier 4 | Ilimitado |
+
+---
+
+## Mock Client (Desarrollo)
+
+Para desarrollo local sin API real:
+
+```python
+# convey/utils/services/mock_whatsapp.py
+
+class MockWhatsAppClient:
+    def send_message(self, to: str, message: str) -> dict:
+        logger.info(f"[MOCK] Sending to {to}: {message}")
+        return {
+            "messaging_product": "whatsapp",
+            "messages": [{"id": f"mock_{uuid.uuid4()}"}],
+        }
+```
+
+Activar en settings:
+
+```python
+# config/settings/local.py
+WHATSAPP_USE_MOCK = True
+```

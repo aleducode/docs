@@ -1,0 +1,328 @@
+---
+title: 'Kubernetes'
+description: 'Deploy en producción con K8s'
+---
+
+## Arquitectura
+
+```mermaid
+graph TB
+    subgraph "Internet"
+        A[CloudFlare]
+    end
+
+    subgraph "Kubernetes Cluster"
+        B[Ingress Controller]
+        C[Django Pods x3]
+        D[Celery Worker Pods]
+        E[Celery Beat Pod]
+        F[Redis Pod]
+        G[PostgreSQL]
+    end
+
+    A --> B
+    B --> C
+    C --> F
+    C --> G
+    D --> F
+    D --> G
+    E --> F
+```
+
+---
+
+## Manifests
+
+### Namespace
+
+```yaml
+# infra/k8s/namespace.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: convey
+```
+
+### Django Deployment
+
+```yaml
+# infra/k8s/django-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: django
+  namespace: convey
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: django
+  template:
+    metadata:
+      labels:
+        app: django
+    spec:
+      containers:
+        - name: django
+          image: your-registry/convey:latest
+          ports:
+            - containerPort: 5000
+          envFrom:
+            - secretRef:
+                name: django-secrets
+            - configMapRef:
+                name: django-config
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /health/
+              port: 5000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health/
+              port: 5000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+```
+
+### Service
+
+```yaml
+# infra/k8s/django-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: django
+  namespace: convey
+spec:
+  selector:
+    app: django
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 5000
+  type: ClusterIP
+```
+
+### Ingress
+
+```yaml
+# infra/k8s/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: convey-ingress
+  namespace: convey
+  annotations:
+    kubernetes.io/ingress.class: traefik
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  tls:
+    - hosts:
+        - app.convey.pro
+      secretName: convey-tls
+  rules:
+    - host: app.convey.pro
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: django
+                port:
+                  number: 80
+```
+
+---
+
+## Celery
+
+### Worker Deployment
+
+```yaml
+# infra/k8s/celery-worker.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: celery-worker
+  namespace: convey
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: celery-worker
+  template:
+    metadata:
+      labels:
+        app: celery-worker
+    spec:
+      containers:
+        - name: celery
+          image: your-registry/convey:latest
+          command: ["celery", "-A", "config.celery_app", "worker", "-l", "INFO"]
+          envFrom:
+            - secretRef:
+                name: django-secrets
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "500m"
+```
+
+### Beat Deployment
+
+```yaml
+# infra/k8s/celery-beat.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: celery-beat
+  namespace: convey
+spec:
+  replicas: 1  # Solo 1 instancia
+  selector:
+    matchLabels:
+      app: celery-beat
+  template:
+    spec:
+      containers:
+        - name: celery-beat
+          image: your-registry/convey:latest
+          command: ["celery", "-A", "config.celery_app", "beat", "-l", "INFO"]
+```
+
+---
+
+## HPA (Auto-scaling)
+
+```yaml
+# infra/k8s/hpa.yaml
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: django-hpa
+  namespace: convey
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: django
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+```
+
+---
+
+## Secrets
+
+```yaml
+# infra/k8s/secrets.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: django-secrets
+  namespace: convey
+type: Opaque
+stringData:
+  DJANGO_SECRET_KEY: "your-secret-key"
+  DATABASE_URL: "postgres://user:pass@host:5432/db"
+  REDIS_URL: "redis://redis:6379/0"
+  OPENAI_API_KEY: "sk-xxx"
+```
+
+<Warning>
+Nunca commits secrets en Git. Usa herramientas como Sealed Secrets o External Secrets.
+</Warning>
+
+---
+
+## Comandos
+
+### Aplicar manifests
+
+```bash
+kubectl apply -f infra/k8s/
+```
+
+### Ver pods
+
+```bash
+kubectl get pods -n convey
+```
+
+### Ver logs
+
+```bash
+kubectl logs -f deployment/django -n convey
+kubectl logs -f deployment/celery-worker -n convey
+```
+
+### Shell en pod
+
+```bash
+kubectl exec -it deployment/django -n convey -- python manage.py shell
+```
+
+### Rollout
+
+```bash
+# Restart deployment
+kubectl rollout restart deployment/django -n convey
+
+# Ver status
+kubectl rollout status deployment/django -n convey
+
+# Rollback
+kubectl rollout undo deployment/django -n convey
+```
+
+---
+
+## CI/CD
+
+### GitHub Actions
+
+```yaml
+# .github/workflows/deploy.yml
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Build and push Docker image
+        run: |
+          docker build -t $REGISTRY/convey:${{ github.sha }} .
+          docker push $REGISTRY/convey:${{ github.sha }}
+
+      - name: Deploy to Kubernetes
+        run: |
+          kubectl set image deployment/django \
+            django=$REGISTRY/convey:${{ github.sha }} \
+            -n convey
+```
