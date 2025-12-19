@@ -3,9 +3,9 @@
   "theme": "mint",
   "name": "Convey Pro",
   "colors": {
-    "primary": "#0f172a",
-    "light": "#3b82f6",
-    "dark": "#1e293b"
+    "primary": "#F97316",
+    "light": "#FB923C",
+    "dark": "#EA580C"
   },
   "favicon": "/favicon.svg",
   "navigation": {
@@ -134,8 +134,8 @@
     }
   },
   "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
+    "light": "/logo/logo.svg",
+    "dark": "/logo/logo.svg"
   },
   "navbar": {
     "links": [
